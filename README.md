@@ -19,7 +19,8 @@ Dependecies:
 4) An already installed Windows game (it's possible to be able to install a game via Proton).
 
 It's using zenity as GUI and it's able to launch, add or remove games.
+
 Modifications are possible by editing GameExec.conf (or creating if not existing).
- Example:
- ProtonBottle=/path/to/the/bottle
- ProtonExec=/home/user/.steam/root/compatibilitytools.d/Proton-5.9-GE-5-ST/proton
+Example:
+- ProtonBottle=/path/to/the/bottle
+- ProtonExec=/home/user/.steam/root/compatibilitytools.d/Proton-5.9-GE-5-ST/proton
