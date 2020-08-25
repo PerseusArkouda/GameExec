@@ -6,11 +6,11 @@ With this script you can manage and run Windows games via Proton.
 - Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 
 How to use:
--- Install Steam client and login.
--- Install zenity.
--- Proton can be installed via GameExec directly.
--- GameExec will create a new GameExec.conf the first time it runs.
--- Add installed games to the game list and launch them.
+1 Install Steam client and login.
+2 Install zenity.
+3 Proton can be installed via GameExec directly.
+4 GameExec will create a new GameExec.conf the first time it runs.
+5 Add installed games to the game list and launch them.
 
 Dependecies:
 1) zenity
