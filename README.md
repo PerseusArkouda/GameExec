@@ -13,10 +13,10 @@ How to use:
 5) Add installed games to the game list and launch them.
 
 Dependecies:
-. zenity
-. Linux Steam client
-. Proton (offers auto install if not found)
-. An already installed Windows game (it's possible to be able to install a game via Proton).
+- zenity
+- Linux Steam client
+- Proton (offers auto install if not found)
+- An already installed Windows game (it's possible to be able to install a game via Proton).
 
 It's using zenity as GUI and it's able to launch, add or remove games.
 
