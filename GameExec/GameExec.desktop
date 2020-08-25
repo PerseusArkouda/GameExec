@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Exec=/bin/bash -c "$(pwd)/GameExec"
+Name=GameExec Launcher
+GenericName=GameExec Launcher
+Comment=Manages and runs Windows games via Proton
+Encoding=UTF-8
+Terminal=true
+Type=Application
+Categories=Application;Network;

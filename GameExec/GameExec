@@ -1,0 +1,139 @@
+#!/bin/bash
+# With this script you can manage and run Windows games via Proton.
+# Can be executed either by running ./GameExec directly from the terminal or by running GameExec.desktop from a file manager.
+#  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
+
+
+echo "$(echo $'\n\r')#### Linux Game Launcher - by Perseus ####"
+
+config="$(pwd)/GameExec.conf"
+gamelist="$(pwd)/GameList.txt"
+if [ -f "$config" ]; then
+protonbottle=$(grep "ProtonBottle" "$config" | cut -d "=" -f 2)
+protonexec=$(grep "ProtonExec" "$config" | cut -d "=" -f 2)
+fi
+
+# Output in zenity
+function output {
+  # --timeout 30 kills both steam and game and --progress stays alive until cancel is pressed without it
+  #[[ "$param" != "--question" || "$param" != "--info" ]] && unset param2
+  [ ! -z "$msg" ] && msg="--text=$msg" && param="$param --no-wrap"
+  zenity $param "$msg"
+}
+
+# add game function
+function addgame {
+ gamename=$(zenity --entry --text="Enter new game name:" --width=300)
+ [ "$?" -ne 0 ] && param="--error" && msg="Cancelled." && output && desktopmenu
+ [ -z "$gamename" ] && param="--error" && msg="Input cannot be empty." && output && desktopmenu
+ gamepath=$(zenity --file-selection --title="Select a game executable" --filename "${HOME}/" --file-filter="*.exe")
+ [ "$?" -ne 0 ] && param="--error" && msg="Cancelled." && output && desktopmenu
+ echo "${gamename}=${gamepath}" >> "$gamelist"
+ param="--info" && msg="Success. $gamename added to ${gamelist}." && output
+ desktopmenu
+}
+
+# games list function
+function gameslist {
+ [ ! -f "$gamelist" ] && param="--error" && msg="Game list not found. Add games first and retry." && output && desktopmenu
+ declare -A games
+ while IFS= read -r i; do
+  games["$(echo $i | cut -d '=' -f 1)"]="$(echo $i | cut -d '=' -f 2)"
+ done < "$gamelist"
+ #done < <(sed -r -e 's/([0-9]+)/ \1/' $gamelist | sort -k 2 -n | sed -e 's/ //;')
+
+ selectedgame=$(zenity --list --title="Games" --text="Select a game to $action:" --column="Game" "${!games[@]}" --height=300 --width=500)
+ [[ "$?" -ne 0 || -z "$selectedgame" ]] && desktopmenu
+ selectedgamepath="${games[$selectedgame]}"
+}
+
+# remove game function
+function removegame {
+ action="remove"
+ gameslist
+ param="--question --ok-label=Yes --extra-button=No " && msg="Are you sure you want to remove ${selectedgame} from the game list?" && output
+ [ "$?" -ne 0 ] && param="--info" && msg="Game removal cancelled." && output && desktopmenu
+ sed -i "/$selectedgame/d" "$gamelist" && param="--info" && msg="Removed: $selectedgame" && output && desktopmenu
+}
+
+# launch game function
+function launchgame {
+ action="launch"
+ gameslist
+# Experimental vulkan renderer.
+ #export RADV_PERFTEST=aco && \
+ STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
+ sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
+  zenity --progress --pulsate --auto-close --auto-kill --text="Launching ${selectedgame}..."
+# TEMPORARILY REMOVED PROCESS VERIFICATION
+ #[ "$?" != 0 ] && param="--error" && \
+  #msg="Game execution failed." && output && exit 1
+}
+
+# Drop error if zenity is not installed
+[ -z "$(whereis zenity | awk '{print $2}')" ] && \
+ echo "zenity was not found installed. Install zenity and try again. Exiting." && exit 1
+
+# Drop error if steam is not installed
+[ -z "$(whereis steam | awk '{print $2}')" ] && \
+ param="--error" && msg="Steam cannot be found installed. Install Steam and try again. Exiting." && output && exit 1
+
+# Check if Steam is running
+function chk {
+ pgrep steam >/dev/null
+}
+
+chk || (param="--question --ok-label=Yes --extra-button=No" && msg="Steam is not running. Run now?" && output)
+[ "$?" -ne 0 ] && param="--error" && msg="Cannot start without Steam running. \nExiting." && output && exit 1
+chk || steam &
+chk || (param="--info" && msg="Starting Steam...\n(Press OK only after you have logged in on Steam)" && output)
+chk || (param="--error" && msg="Steam still not running. Exiting." && output && exit 1)
+
+# Drop error if Proton not installed and offer to auto install
+[ ! -f "$protonexec" ] && param="--question --ok-label=Yes --extra-button=No" && msg="Proton not found installed. \nWould you like to install it now?" && output
+[ "$?" -ne 0 ] && [ ! -f "$protonexec" ] && param="--error" && msg="Cannot start without Proton installed. Exiting." && output && exit 1
+compatpath="${HOME}/.steam/root/compatibilitytools.d"
+protonurl="https://github.com/$(curl -s -L https://github.com/GloriousEggroll/proton-ge-custom/releases/latest | grep 'tar.gz' | head -1 | cut -d '"' -f 2)"
+protonfile=$(basename "$protonurl")
+protondir="${protonfile/.tar.gz/}"
+protonfullpath="${compatpath}/${protondir}"
+protonexec="${protonfullpath}/proton"
+# ADD ZENITY PROGRESS HERE
+[ ! -f "$protonexec" ] && mkdir -p "$compatpath" && \
+ curl -L "https://github.com/${protonurl}" -o "${compatpath}/Proton.tar.gz" && \
+ printf "Uncompressing..." && \
+ tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" && \
+ echo "Done." && \
+ [ -f "$protonexec" ] && \
+ param="--info" && msg="$protondir is now installed." && output
+
+# Creating config file if not found
+if [ ! -f "$config" ]; then
+ param="--info" && msg="Config not found. Making new config..." && output
+ echo "ProtonExec=${protonexec}" > "$config"
+ while true; do
+  msg="Select an existing bottle or create an empty directory to make a Proton bottle."
+  echo "$msg"
+  protonbottle=$(zenity --file-selection --title="$msg" --directory --filename "${HOME}/")
+  echo "Directory selected: $protonbottle"
+  [ -d "$protonbottle" ] && echo "ProtonBottle=${protonbottle}" >> "$config" && \
+   param="--info" && msg="$config config is successfully created." && output && break
+  param="--error" && msg="This is not a correct directory for Proton Bottle. \nTry again." && output
+ done
+fi
+
+function desktopmenu {
+selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher - Main menu" \
+ --column="Select" --column="Operation" FALSE "Launch a game" FALSE "Add a new game" \
+ FALSE "Remove a game from the game list" --height=300 --width=500)
+
+grep -q ^Launch <<<"$selectedmenuitem" && launchgame
+grep -q ^Add <<<"$selectedmenuitem" && addgame
+grep -q ^Remove <<<"$selectedmenuitem" && removegame
+#[[ "$?" != 0 || -z "$selectedmenuitem" ]] && param="--question" && msg="Are you sure you want to exit?" --------
+}
+
+echo
+desktopmenu
+
+echo "$(echo $'\n\r')#### Linux Game Launcher Finished. ####"
