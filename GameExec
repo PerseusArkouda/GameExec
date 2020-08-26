@@ -63,8 +63,9 @@ function launchgame {
 # Experimental vulkan renderer.
  #export RADV_PERFTEST=aco && \
  STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
- sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
-  zenity --progress --pulsate --auto-close --auto-kill --text="Launching ${selectedgame}..."
+ #sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
+  echo "Launching ${selectedgame}..."
+  #zenity --progress --pulsate --auto-close --auto-kill --text="Launching ${selectedgame}..."
 # TEMPORARILY REMOVED PROCESS VERIFICATION
  #[ "$?" != 0 ] && param="--error" && \
   #msg="Game execution failed." && output && exit 1
@@ -72,7 +73,7 @@ function launchgame {
 
 function desktopmenu {
 selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher - Main menu" \
- --column="Select" --column="Operation" FALSE "Launch a game" FALSE "Add a new game" \
+ --column="Select" --column="Operation" TRUE "Launch a game" FALSE "Add a new game" \
  FALSE "Remove a game from the game list" --height=300 --width=500)
 
 grep -q ^Launch <<<"$selectedmenuitem" && launchgame
@@ -101,30 +102,34 @@ chk || (param="--info" && msg="Starting Steam...\n(Press OK only after you have 
 chk || (param="--error" && msg="Steam still not running. Exiting." && output && exit 1)
 
 # Drop error if Proton not installed and offer to auto install
-[ ! -f "$protonexec" ] && param="--question" && msg="Proton not found installed. \nWould you like to install it now?" && output
+[ ! -f "$protonexec" ] && param="--question" && msg="Proton not found installed or not configured. \nWould you like to verify or install it now?" && output
 [ "$?" -ne 0 ] && [ ! -f "$protonexec" ] && param="--error" && msg="Cannot start without Proton installed. Exiting." && output && exit 1
 compatpath="${HOME}/.steam/root/compatibilitytools.d"
-protonurl="https://github.com/$(curl -s -L https://github.com/GloriousEggroll/proton-ge-custom/releases/latest | grep 'tar.gz' | head -1 | cut -d '"' -f 2)"
+protonurl="https://github.com$(curl -s -L https://github.com/GloriousEggroll/proton-ge-custom/releases/latest | grep 'tar.gz' | head -1 | cut -d '"' -f 2)"
 protonfile=$(basename "$protonurl")
 protondir="${protonfile/.tar.gz/}"
 protonfullpath="${compatpath}/${protondir}"
 protonexec="${protonfullpath}/proton"
+if [ -f "$protonexec" ]; then
+ [ ! -f "$config" ] && param="--info" && msg="$protondir found installed and will be added to the config." && output || echo
+else
 # ADD ZENITY PROGRESS HERE
-[ ! -f "$protonexec" ] && mkdir -p "$compatpath" && \
- curl -L "https://github.com/${protonurl}" -o "${compatpath}/Proton.tar.gz" && \
- printf "Uncompressing..." && \
- tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" && \
- echo "Done." && \
- [ -f "$protonexec" ] && \
- param="--info" && msg="$protondir is now installed." && output
+ mkdir -p "$compatpath" && \
+  curl -L "${protonurl}" -o "${compatpath}/Proton.tar.gz" && \
+  printf "Uncompressing..." && \
+  tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" && \
+  rm "${compatpath}/Proton.tar.gz" && \
+  echo "Done." && \
+  [ -f "$protonexec" ] && \
+  param="--info" && msg="$protondir is now installed." && output
+fi
 
 # Creating config file if not found
 if [ ! -f "$config" ]; then
- param="--info" && msg="Config not found. Making new config..." && output
+ msg="Select an existing bottle or create an empty directory to make a new Proton bottle."
+ param="--info" && msg="Config not found. Creating new config... \n${msg} " && output
  echo "ProtonExec=${protonexec}" > "$config"
  while true; do
-  msg="Select an existing bottle or create an empty directory to make a Proton bottle."
-  echo "$msg"
   protonbottle=$(zenity --file-selection --title="$msg" --directory --filename "${HOME}/")
   echo "Directory selected: $protonbottle"
   [ -d "$protonbottle" ] && echo "ProtonBottle=${protonbottle}" >> "$config" && \

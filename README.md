@@ -6,21 +6,20 @@ With this script you can manage and run Windows games via Proton.
 - Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 
 How to use:
-1) Install Steam client and login.
-2) Install zenity.
-3) Proton can be installed via GameExec directly.
-4) GameExec will create a new GameExec.conf the first time it runs.
-5) Add installed games to the game list and launch them.
+Install Steam client and login.
+Install zenity.
+Proton can be installed via GameExec directly.
+GameExec will create a new GameExec.conf the first time it runs.
+Add installed games to the game list and launch them.
 
 Dependecies:
-- zenity
-- Linux Steam client
-- Proton (offers auto install if not found)
-- An already installed Windows game (it's possible to be able to install a game via Proton).
+1) zenity
+2) Linux Steam client
+3) Proton (offers auto install if not found)
+4) An already installed Windows game (it's possible to be able to install a game via Proton).
 
 It's using zenity as GUI and it's able to launch, add or remove games.
-
 Modifications are possible by editing GameExec.conf (or creating if not existing).
-Example:
-- ProtonBottle=/path/to/the/bottle
-- ProtonExec=/home/user/.steam/root/compatibilitytools.d/Proton-5.9-GE-5-ST/proton
+ Example:
+ ProtonBottle=/path/to/the/bottle
+ ProtonExec=/home/user/.steam/root/compatibilitytools.d/Proton-5.9-GE-5-ST/proton
