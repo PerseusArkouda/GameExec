@@ -6,8 +6,10 @@
 
 echo "$(echo $'\n\r')#### Linux Game Launcher - by Perseus ####"
 
-config="$(pwd)/GameExec.conf"
-gamelist="$(pwd)/GameList.txt"
+script=$(realpath "$0")
+scriptpath=$(dirname "$script")
+config="$scriptpath/GameExec.conf"
+gamelist="$scriptpath/GameList.txt"
 if [ -f "$config" ]; then
 protonbottle=$(grep "ProtonBottle" "$config" | cut -d "=" -f 2)
 protonexec=$(grep "ProtonExec" "$config" | cut -d "=" -f 2)
@@ -56,6 +58,14 @@ function removegame {
  sed -i "/$selectedgame/d" "$gamelist" && param="--info" && msg="Removed: $selectedgame" && output && desktopmenu
 }
 
+# reset to default function
+function reset {
+ param="--question" && msg="This option will reset GameExec to default.\nIt will remove your Proton bottle: $protonbottle.\nand your config file: ${config}.\nYour game list will remain in tact.\nDo you want to proceed?" && output
+ [ "$?" -ne 0 ] && param="--info" && msg="Reset cancelled." && output && desktopmenu
+ [ -d "$protonbottle" ] && rm -rf "$protonbottle" && rm "$config" && param="--info" && msg="Proton bottle removed: ${protonbottle}.\nConfig removed: ${config}\nRestart the script to initialize new ones. Exiting." && output
+ exit 0
+}
+
 # launch game function
 function launchgame {
  action="launch"
@@ -64,7 +74,7 @@ function launchgame {
  #export RADV_PERFTEST=aco && \
  STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
  #sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
-  echo "Launching ${selectedgame}..."
+  echo "Launching ${selectedgame}..." ; echo "GameExec exits and Proton takes over. Watch the terminal for any errors."
   #zenity --progress --pulsate --auto-close --auto-kill --text="Launching ${selectedgame}..."
 # TEMPORARILY REMOVED PROCESS VERIFICATION
  #[ "$?" != 0 ] && param="--error" && \
@@ -74,11 +84,14 @@ function launchgame {
 function desktopmenu {
 selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher - Main menu" \
  --column="Select" --column="Operation" TRUE "Launch a game" FALSE "Add a new game" \
- FALSE "Remove a game from the game list" --height=300 --width=500)
+ FALSE "Remove a game from the game list" FALSE "Reset GameExec" --height=300 --width=500)
 
 grep -q ^Launch <<<"$selectedmenuitem" && launchgame
 grep -q ^Add <<<"$selectedmenuitem" && addgame
 grep -q ^Remove <<<"$selectedmenuitem" && removegame
+grep -q ^Reset <<<"$selectedmenuitem" && reset
+echo "$(echo $'\n\r')#### Linux Game Launcher Finished. ####"
+exit 0
 #[[ "$?" != 0 || -z "$selectedmenuitem" ]] && param="--question" && msg="Are you sure you want to exit?" --------
 }
 
@@ -96,10 +109,13 @@ function chk {
 }
 
 chk || (param="--question" && msg="Steam is not running. Run now?" && output)
-[ "$?" -ne 0 ] && param="--error" && msg="Cannot start without Steam running. \nExiting." && output && exit 1
-chk || steam &
-chk || (param="--info" && msg="Starting Steam...\n(Press OK only after you have logged in on Steam)" && output)
-chk || (param="--error" && msg="Steam still not running. Exiting." && output && exit 1)
+if [ "$?" -ne 0 ]; then
+ param="--error" && msg="WARNING: You can only run games which don't require Steam to run." && output
+else
+ chk || steam &
+ chk || (param="--info" && msg="Starting Steam...\n(Press OK only after you have logged in on Steam)" && output)
+ #chk || (param="--error" && msg="Steam still not running. Exiting." && output && exit 1)
+fi
 
 # Drop error if Proton not installed and offer to auto install
 [ ! -f "$protonexec" ] && param="--question" && msg="Proton not found installed or not configured. \nWould you like to verify or install it now?" && output
@@ -140,5 +156,3 @@ fi
 
 echo
 desktopmenu
-
-echo "$(echo $'\n\r')#### Linux Game Launcher Finished. ####"
