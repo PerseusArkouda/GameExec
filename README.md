@@ -24,8 +24,8 @@ With this script you can manage and run Windows games via Proton.
 
 It's using zenity as GUI and it's able to launch, add or remove games.
 Modifications are possible by editing GameExec.conf (or creating if not existing).
-#####  Example:
- ProtonBottle=/path/to/the/bottle
- ProtonExec=/home/${USER}/.steam/root/compatibilitytools.d/Proton-5.9-GE-5-ST/proton
++ Example:
++ ProtonBottle=/path/to/the/bottle
++ ProtonExec=/home/${USER}/.steam/root/compatibilitytools.d/Proton-5.9-GE-5-ST/proton
 
 [Guide to install GPU drivers and Vulkan](https://github.com/lutris/docs/blob/master/InstallingDrivers.md)
