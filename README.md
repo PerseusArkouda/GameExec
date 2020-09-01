@@ -5,7 +5,7 @@ With this script you can manage and run Windows games via Proton.
 - Can be executed either by running ./GameExec directly from the terminal or by running GameExec.desktop from a file manager.
 - Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 
-![GameExec Screenshot](https://github.com/PerseusArkouda/bash-scripts/blob/master/GameExec-Screenshot.jpg?raw=true)
+![GameExec Screenshot](https://github.com/PerseusArkouda/GameExec/blob/master/GameExec-Screenshot.jpg?raw=true)
 
 ### How to use:
 1) Install Steam client and login.
