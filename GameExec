@@ -9,6 +9,25 @@ echo "by Perseus"
 
 script=$(realpath "$0")
 scriptpath=$(dirname "$script")
+
+script=$(realpath "$0")
+scriptpath=$(dirname "$script")
+
+function update {
+ url="https://raw.githubusercontent.com/PerseusArkouda/GameExec/master/GameExec"
+ newscript="${script}.new"
+ echo "$(echo $'\n\r')Updating..."
+ curl -L "$url" -o "$newscript"
+ [ "$?" -eq 0 ] && cp "$newscript" "$script" && rm -f "$newscript" && echo "Done!" && \
+  $script "success" && exit 0 || \
+  echo "ERROR: Update failed!"
+}
+
+# Checking for update argument and update
+grep -q update <<<"$*" &>/dev/null && update
+# Checking if update was successful
+grep -q success <<<"$*" &>/dev/null && echo "$0 Updated Successfully.$(echo $'\n\r')"
+
 config="$scriptpath/GameExec.conf"
 gamelist="$scriptpath/GameList.txt"
 compatpath="${HOME}/.steam/root/compatibilitytools.d"
@@ -19,7 +38,7 @@ if [ -f "$config" ]; then
  protonbottle=$(grep "ProtonBottle" "$config" | cut -d "=" -f 2)
  protonexec=$(grep "ProtonExec" "$config" | cut -d "=" -f 2)
  [ ! -z "$protonexec" ] && protoninstalled=$(dirname "$protonexec" | xargs basename)
- # Fix ProtonExec path in conf if different from existing path
+ # Fixing ProtonExec path in conf if different from existing path
  [ ! -z "$protonexist" ] && [ "$protonexist" != "$protoninstalled" ] && \
   sed -i "s/${protoninstalled}/${protonexist}/" "$config" && \
   protoninstalled="$protonexist" && protonexec="${compatpath}/${protoninstalled}/proton"
