@@ -11,9 +11,14 @@ scriptpath=$(dirname "$script")
 config="$scriptpath/GameExec.conf"
 gamelist="$scriptpath/GameList.txt"
 if [ -f "$config" ]; then
-protonbottle=$(grep "ProtonBottle" "$config" | cut -d "=" -f 2)
-protonexec=$(grep "ProtonExec" "$config" | cut -d "=" -f 2)
-[ ! -z "$protonexec" ] && protoninstalled=$(dirname "$protonexec" | xargs basename)
+ # Reading values from conf if exist
+ protonbottle=$(grep "ProtonBottle" "$config" | cut -d "=" -f 2)
+ protonexec=$(grep "ProtonExec" "$config" | cut -d "=" -f 2)
+ [ ! -z "$protonexec" ] && protoninstalled=$(dirname "$protonexec" | xargs basename)
+else
+ # Setting proton executable path if exist
+ protonexec=$(ls ${HOME}/.steam/root/compatibilitytools.d/ | grep "Proton")
+ [ ! -z "$protonexec" ] && protonexec="${HOME}/.steam/root/compatibilitytools.d/${protonexec}/proton" || protonexec=""
 fi
 
 # Output in zenity
@@ -152,7 +157,6 @@ if [ ! -f "$protonexec" ] || [ ! -z "$updateproton" ]; then
   tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" && \
   rm "${compatpath}/Proton.tar.gz" && \
   echo "Done." && \
-  [ -f "$protonexec" ] && \
   protonexec="${protonfullpath}/proton" && \
   param="--info" && msg="$protondir is now installed." && output
 else
