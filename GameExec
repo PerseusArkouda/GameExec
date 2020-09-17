@@ -23,7 +23,7 @@ function update {
 # Checking for update argument and update
 grep -q update <<<"$*" &>/dev/null && update
 # Checking if update was successful
-grep -q success <<<"$*" &>/dev/null && echo "$0 Updated Successfully.$(echo $'\n\r')"
+grep -q success <<<"$*" &>/dev/null && echo "$(echo $'\n\r')$(basename $0) Updated Successfully.$(echo $'\n\r')"
 
 config="$scriptpath/GameExec.conf"
 gamelist="$scriptpath/GameList.txt"
