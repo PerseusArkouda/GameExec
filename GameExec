@@ -3,6 +3,7 @@
 # Can be executed either by running ./GameExec directly from the terminal or by running GameExec.desktop from a file manager.
 #  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
+# Added self updating functionality. Run: ./GameExec update
 
 echo "$(echo $'\n\r')#### Linux Game Launcher ####"
 echo "by Perseus"
