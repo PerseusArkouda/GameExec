@@ -10,9 +10,6 @@ echo "by Perseus"
 script=$(realpath "$0")
 scriptpath=$(dirname "$script")
 
-script=$(realpath "$0")
-scriptpath=$(dirname "$script")
-
 function update {
  url="https://raw.githubusercontent.com/PerseusArkouda/GameExec/master/GameExec"
  newscript="${script}.new"
