@@ -4,21 +4,29 @@
 #  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
-echo "$(echo $'\n\r')#### Linux Game Launcher - by Perseus ####"
+echo "$(echo $'\n\r')#### Linux Game Launcher ####"
+echo "by Perseus"
 
 script=$(realpath "$0")
 scriptpath=$(dirname "$script")
 config="$scriptpath/GameExec.conf"
 gamelist="$scriptpath/GameList.txt"
+compatpath="${HOME}/.steam/root/compatibilitytools.d"
+protonexist=$(ls "$compatpath" | grep "Proton")
+
 if [ -f "$config" ]; then
  # Reading values from conf if exist
  protonbottle=$(grep "ProtonBottle" "$config" | cut -d "=" -f 2)
  protonexec=$(grep "ProtonExec" "$config" | cut -d "=" -f 2)
  [ ! -z "$protonexec" ] && protoninstalled=$(dirname "$protonexec" | xargs basename)
+ # Fix ProtonExec path in conf if different from existing path
+ [ ! -z "$protonexist" ] && [ "$protonexist" != "$protoninstalled" ] && \
+  sed -i "s/${protoninstalled}/${protonexist}/" "$config" && \
+  protoninstalled="$protonexist" && protonexec="${compatpath}/${protoninstalled}/proton"
 else
- # Setting proton executable path if exist
- protonexec=$(ls ${HOME}/.steam/root/compatibilitytools.d/ | grep "Proton")
- [ ! -z "$protonexec" ] && protonexec="${HOME}/.steam/root/compatibilitytools.d/${protonexec}/proton" || protonexec=""
+ # Setting proton executable path if exist even without a conf
+ [ ! -z "$protonexist" ] && protonexec="${compatpath}/${protonexist}/proton" || protonexec=""
+ [ ! -z "$protonexec" ] && protoninstalled=$(dirname "$protonexec" | xargs basename)
 fi
 
 # Output in zenity
@@ -133,7 +141,6 @@ else
 fi
 
 # Check if Proton is installed and also check for update
-compatpath="${HOME}/.steam/root/compatibilitytools.d"
 protonurl="https://github.com$(curl -s -L https://github.com/GloriousEggroll/proton-ge-custom/releases/latest | grep 'tar.gz' | head -1 | cut -d '"' -f 2)"
 protonfile=$(basename "$protonurl")
 protondir="${protonfile/.tar.gz/}"
@@ -145,7 +152,7 @@ protononline="$protondir"
 
 # Drop error if Proton not installed and offer auto install or update
 if [ ! -f "$protonexec" ] || [ ! -z "$updateproton" ]; then
- [ ! -f "$protonexec" ] && param="--question" && msg="Proton not found installed or not configured. \nWould you like to verify or install it now?" && output && \
+ [ ! -f "$protonexec" ] && param="--question" && msg="Proton not found installed or not configured. \nWould you like to verify or install it now?" && output
   [ "$?" -ne 0 ] && param="--error" && msg="Cannot start without Proton installed. Exiting." && output && exit 1
 # ADD ZENITY PROGRESS HERE
  echo "Installing $protononline..."
@@ -159,6 +166,7 @@ if [ ! -f "$protonexec" ] || [ ! -z "$updateproton" ]; then
   echo "Done." && \
   protonexec="${protonfullpath}/proton" && \
   param="--info" && msg="$protondir is now installed." && output
+  [ -f "$config" ] && sed -i "s/${protoninstalled}/${protononline}/" "$config"
 else
  [ ! -f "$config" ] && param="--info" && msg="$protondir found installed and will be added to the config." && output || echo
 fi
