@@ -43,7 +43,9 @@ function launchgame {
  action="launch"
  gameslist
 # Experimental vulkan renderer.
- #export RADV_PERFTEST=aco && \
+ #export RADV_PERFTEST=aco
+ gamepath=$(dirname "$selectedgamepath")
+ cd "$gamepath"
  STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
  #sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
   echo "Launching ${selectedgame}..." ; echo "$(basename $0) exits and Proton takes over. Watch the terminal for any errors."
