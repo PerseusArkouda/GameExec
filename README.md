@@ -3,15 +3,15 @@
 ## Short description:
 With this script you can manage and run Windows games via Proton.
  - Can be executed either by running ./GameExec directly from the terminal or by running GameExec.desktop from a file manager.
- - Can be self updated by running: ./GameExec update
  - Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
+ - Added self updating option.
 
 ![GameExec Screenshot](https://github.com/PerseusArkouda/GameExec/blob/master/GameExec-Screenshot.jpg?raw=true)
 
 ### How to use:
  1) Install Steam client and login.
  2) Install zenity.
- 3) Proton GE Custom can be installed via GameExec directly.
+ 3) Proton can be installed via GameExec directly.
  4) GameExec will create a new GameExec.conf the first time it runs.
  5) Add installed games to the game list and launch them.
 
@@ -24,10 +24,9 @@ With this script you can manage and run Windows games via Proton.
  - winetricks (Optional for installing additional Windows software)
 
 It's using zenity as GUI and it's able to launch, add or remove games.
-Modifications are possible by editing GameExec.conf (or creating if not existing).  
- Example:  
+Modifications are possible by editing GameExec.conf (or creating if not existing).
+ Example:
 + ProtonBottle=/path/to/the/bottle
 + ProtonExec=/home/${USER}/.steam/root/compatibilitytools.d/Proton-5.9-GE-5-ST/proton
 
-[Guide to install GPU drivers and Vulkan](https://github.com/lutris/docs/blob/master/InstallingDrivers.md)  
-[Link to Proton GE Custom](https://github.com/GloriousEggroll/proton-ge-custom/releases)
+[Guide to install GPU drivers and Vulkan](https://github.com/lutris/docs/blob/master/InstallingDrivers.md)

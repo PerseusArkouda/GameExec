@@ -3,30 +3,14 @@
 # Can be executed either by running ./GameExec directly from the terminal or by running GameExec.desktop from a file manager.
 #  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
-# Added self updating functionality. Run: ./GameExec update
+# Added self updating option.
 
 echo "$(echo $'\n\r')#### Linux Game Launcher ####"
 echo "by Perseus"
 
 script=$(realpath "$0")
 scriptpath=$(dirname "$script")
-
-function update {
- url="https://raw.githubusercontent.com/PerseusArkouda/GameExec/master/GameExec"
- newscript="${script}.new"
- echo "$(echo $'\n\r')Updating..."
- curl -L "$url" -o "$newscript"
- [ "$?" -eq 0 ] && cp "$newscript" "$script" && rm -f "$newscript" && echo "Done!" && \
-  $script "success" && exit 0 || \
-  echo "ERROR: Update failed!"
-}
-
-# Checking for update argument and update
-grep -q update <<<"$*" &>/dev/null && update
-# Checking if update was successful
-grep -q success <<<"$*" &>/dev/null && echo "$(echo $'\n\r')$(basename $0) Updated Successfully.$(echo $'\n\r')"
-
-config="$scriptpath/GameExec.conf"
+config="$scriptpath/$(basename $0).conf"
 gamelist="$scriptpath/GameList.txt"
 compatpath="${HOME}/.steam/root/compatibilitytools.d"
 protonexist=$(ls "$compatpath" | grep "Proton")
@@ -54,7 +38,22 @@ function output {
   zenity $param "$msg"
 }
 
-# add game function
+# Launch game function
+function launchgame {
+ action="launch"
+ gameslist
+# Experimental vulkan renderer.
+ #export RADV_PERFTEST=aco && \
+ STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
+ #sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
+  echo "Launching ${selectedgame}..." ; echo "$(basename $0) exits and Proton takes over. Watch the terminal for any errors."
+  #zenity --progress --pulsate --auto-close --auto-kill --text="Launching ${selectedgame}..."
+# TEMPORARILY REMOVED PROCESS VERIFICATION
+ #[ "$?" != 0 ] && param="--error" && \
+  #msg="Game execution failed." && output && exit 1
+}
+
+# Add game function
 function addgame {
  gamename=$(zenity --entry --text="Enter new game name:" --width=300)
  [ "$?" -ne 0 ] && param="--error" && msg="Cancelled." && output && desktopmenu
@@ -66,7 +65,7 @@ function addgame {
  desktopmenu
 }
 
-# games list function
+# Games list function
 function gameslist {
  [ ! -f "$gamelist" ] && param="--error" && msg="Game list not found. Add games first and retry." && output && desktopmenu
  declare -A games
@@ -80,7 +79,7 @@ function gameslist {
  selectedgamepath="${games[$selectedgame]}"
 }
 
-# remove game function
+# Remove game function
 function removegame {
  action="remove"
  gameslist
@@ -96,40 +95,39 @@ function runwinetricks {
  desktopmenu
 }
 
-# reset to default function
+# Reset to default function
 function reset {
- param="--question" && msg="This option will reset GameExec to default.\nIt will remove your Proton bottle: $protonbottle.\nand your config file: ${config}.\nYour game list will remain in tact.\nDo you want to proceed?" && output
+ param="--question" && msg="This option will reset $(basename $0) to default.\nIt will remove your Proton bottle: $protonbottle.\nand your config file: ${config}.\nYour game list will remain in tact.\nDo you want to proceed?" && output
  [ "$?" -ne 0 ] && param="--info" && msg="Reset cancelled." && output && desktopmenu
  [ -d "$protonbottle" ] && rm -rf "$protonbottle" && rm "$config" && param="--info" && msg="Proton bottle removed: ${protonbottle}.\nConfig removed: ${config}\nRestart the script to initialize new ones. Exiting." && output
  exit 0
 }
 
-# launch game function
-function launchgame {
- action="launch"
- gameslist
-# Experimental vulkan renderer.
- #export RADV_PERFTEST=aco && \
- STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
- #sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
-  echo "Launching ${selectedgame}..." ; echo "GameExec exits and Proton takes over. Watch the terminal for any errors."
-  #zenity --progress --pulsate --auto-close --auto-kill --text="Launching ${selectedgame}..."
-# TEMPORARILY REMOVED PROCESS VERIFICATION
- #[ "$?" != 0 ] && param="--error" && \
-  #msg="Game execution failed." && output && exit 1
+# Update script function
+function update {
+ url="https://raw.githubusercontent.com/PerseusArkouda/GameExec/master/GameExec"
+ newscript="${script}.new"
+ printf "$(echo $'\n\r')$(basename $0) is updating..." && \
+ curl -L "$url" -o "$newscript" &>/dev/null
+ [ "$?" -eq 0 ] && cp "$newscript" "$script" && rm -f "$newscript" && \
+ echo "Done!" && echo "$(echo $'\n\r')Restarting $(basename $0)..." && \
+  $script "success" && exit 0 || \
+  param="--error" && msg="$(basename $0) update failed!" && output
 }
 
-# main menu function
+# Main menu function
 function desktopmenu {
 selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher - Main menu" \
  --column="Select" --column="Operation" TRUE "Launch a game" FALSE "Add a new game" \
- FALSE "Remove a game from the game list" FALSE "Winetricks (Requires wine and winetricks)" FALSE "Reset GameExec" --height=300 --width=500)
+ FALSE "Remove a game from the game list" FALSE "Winetricks (Requires wine and winetricks)" FALSE "Reset $(basename $0)" FALSE "Update $(basename $0)" --height=300 --width=500)
 
 grep -q ^Launch <<<"$selectedmenuitem" && launchgame
 grep -q ^Add <<<"$selectedmenuitem" && addgame
 grep -q ^Remove <<<"$selectedmenuitem" && removegame
 grep -q ^Winetricks <<<"$selectedmenuitem" && runwinetricks
 grep -q ^Reset <<<"$selectedmenuitem" && reset
+grep -q ^Update <<<"$selectedmenuitem" && update
+
 echo "$(echo $'\n\r')#### Linux Game Launcher Finished. ####"
 exit 0
 #[[ "$?" != 0 || -z "$selectedmenuitem" ]] && param="--question" && msg="Are you sure you want to exit?" --------
@@ -202,5 +200,9 @@ if [ ! -f "$config" ]; then
  done
 fi
 
+# Checking if update was successful
+grep -q success <<<"$*" &>/dev/null && param="--info" && msg="$(basename $0) Updated Successfully." && output
+
+# Main program execution
 echo
 desktopmenu
