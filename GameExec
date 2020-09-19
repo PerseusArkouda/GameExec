@@ -13,6 +13,7 @@ scriptpath=$(dirname "$script")
 config="$scriptpath/$(basename $0).conf"
 gamelist="$scriptpath/GameList.txt"
 compatpath="${HOME}/.steam/root/compatibilitytools.d"
+[ ! -d "$compatpath" ] && mkdir -p "$compatpath"
 protonexist=$(ls "$compatpath" | grep "Proton")
 
 if [ -f "$config" ]; then
