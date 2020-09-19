@@ -48,8 +48,9 @@ function launchgame {
  # Experimental vulkan renderer.
  #export RADV_PERFTEST=aco
  gamepath=$(dirname "$selectedgamepath")
- cd "$gamepath"
- STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
+ [ ! -d "$gamepath" ] && param="--error" && msg="Not found game path: ${gamepath}. \nVerify the path is correct and the disk mounted." && output && desktopmenu || cd "$gamepath"
+  #ENABLE_VKBASALT=1
+ "$gamemode" STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
  #sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
   echo "Launching ${selectedgame}..." ; echo "$(basename $0) exits and Proton takes over. Watch the terminal for any errors."
   #zenity --progress --pulsate --auto-close --auto-kill --text="Launching ${selectedgame}..."
@@ -97,12 +98,21 @@ function removegame {
 
 # Winetricks function
 function runwinetricks {
-  [ -z $(whereis winetricks | awk '{print $2}') ] && param="--error" && msg="winetricks not found installed. Install winetricks and retry." && output && desktopmenu
-  [ -z $(whereis wine | awk '{print $2}') ] && param="--error" && msg="wine not found installed. Install wine and retry." && output && desktopmenu
+ [ -z $(whereis winetricks | awk '{print $2}') ] && param="--error" && msg="winetricks not found installed. Install winetricks and retry." && output && desktopmenu
+ [ -z $(whereis wine | awk '{print $2}') ] && param="--error" && msg="wine not found installed. Install wine and retry." && output && desktopmenu
  WINEPREFIX="${protonbottle}/pfx" winetricks
  desktopmenu
 }
 
+# Enable or disable gamemode
+function enablegamemode {
+ [ -z $(whereis gamemoderun | awk '{print $2}') ] && param="--error" && msg="gamemoderun not found installed. Install GameMode and retry." && output && desktopmenu
+ [ -z "$gamemode" ] && gamemode="gamemoderun" || gamemode=
+ [ -z "$gamemode" ] && gamemodestate="disabled" || gamemodestate="enabled"
+ param="--info" && msg="GameMode optimisations are now $gamemodestate." && output && desktopmenu
+}
+
+# Enable or disable OSD function
 function osd {
  selectedosditem=$(zenity --list --radiolist --text="Linux Game Launcher - OSD menu" \
  --column="Select" --column="Operation" FALSE "Basic info (Just FPS and GPU usage info)" \
@@ -140,12 +150,13 @@ function update {
 function desktopmenu {
 selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher - Main menu" \
  --column="Select" --column="Operation" TRUE "Launch a game" FALSE "Add a new game" \
- FALSE "Remove a game from the game list" FALSE "DXVK OSD HUD (On Screen Display)" FALSE "Winetricks (Requires wine and winetricks)" \
+ FALSE "Remove a game from the game list" FLASE "GameMode optimisations (requires gamemode)" FALSE "DXVK OSD HUD (On Screen Display)" FALSE "Winetricks (Requires wine and winetricks)" \
  FALSE "Reset $(basename $0)" FALSE "Update $(basename $0)" --height=300 --width=500)
 
 grep -q ^Launch <<<"$selectedmenuitem" && launchgame
 grep -q ^Add <<<"$selectedmenuitem" && addgame
 grep -q ^Remove <<<"$selectedmenuitem" && removegame
+grep -q ^GameMode <<<"$selectedmenuitem" && enablegamemode
 grep -q ^DXVK <<<"$selectedmenuitem" && osd
 grep -q ^Winetricks <<<"$selectedmenuitem" && runwinetricks
 grep -q ^Reset <<<"$selectedmenuitem" && reset

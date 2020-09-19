@@ -6,11 +6,12 @@ With this script you can manage and run Windows games via Proton GE Custom.
  - Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
  - Added self updating option.
  - Added DXVK OSD HUD option.
+ - Added GameMode Optimisations option.
 
-Notice: Personally running GameExec from GameExec.desktop causes my games not being able to start.  
-        Prefer running GameExec directly from a terminal until the issue is resolved. 
+Notice: Personally running GameExec from GameExec.desktop causes my games not being able to start.
+        Prefer running GameExec directly from a terminal until the issue is resolved.
 
-![GameExec Screenshot](https://github.com/PerseusArkouda/GameExec/blob/master/GameExec-Screenshot2.jpg?raw=true)
+![GameExec Screenshot](https://github.com/PerseusArkouda/GameExec/blob/master/GameExec-Screenshot3.jpg?raw=true)
 
 ### How to use:
  1) Install Steam client and login.
@@ -34,4 +35,5 @@ Modifications are possible by editing GameExec.conf (or creating if not existing
 + ProtonExec=/home/${USER}/.steam/root/compatibilitytools.d/Proton-5.9-GE-5-ST/proton
 
 [Guide to install GPU drivers and Vulkan](https://github.com/lutris/docs/blob/master/InstallingDrivers.md)  
-[Link to Proton GE Custom](https://github.com/GloriousEggroll/proton-ge-custom)
+[Link to Proton GE Custom](https://github.com/GloriousEggroll/proton-ge-custom)  
+[Link to GameMode](https://github.com/FeralInteractive/gamemode)
