@@ -3,7 +3,6 @@
 # Can be executed either by running ./GameExec directly from the terminal or by running GameExec.desktop from a file manager.
 #  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
-# Added self updating option.
 
 echo "$(echo $'\n\r')#### Linux Game Launcher ####"
 echo "by Perseus"
@@ -100,6 +99,19 @@ function runwinetricks {
  desktopmenu
 }
 
+function osd {
+ selectedosditem=$(zenity --list --radiolist --text="Linux Game Launcher - OSD menu" \
+ --column="Select" --column="Operation" FALSE "Basic info (Just FPS and GPU usage info)" \
+ TRUE "Normal info (More detailed info of GPU, Drivers etc)" FALSE "Full info (All available items displayed)" \
+ FALSE "Disable DXVK OSD HUD" --height=300 --width=500)
+ [ "$?" -ne 0 ] && desktopmenu
+
+grep -q ^Basic <<<"$selectedosditem" && export DXVK_HUD=fps,gpuload && desktopmenu
+grep -q ^Normal <<<"$selectedosditem" && export DXVK_HUD=fps,devinfo,gpuload,memory,version,api && desktopmenu
+grep -q ^Full <<<"$selectedosditem" && export DXVK_HUD=full && desktopmenu
+grep -q ^Disable <<<"$selectedosditem" && export DXVK_HUD= && desktopmenu
+}
+
 # Reset to default function
 function reset {
  param="--question" && msg="This option will reset $(basename $0) to default.\nIt will remove your Proton bottle: $protonbottle.\nand your config file: ${config}.\nYour game list will remain in tact.\nDo you want to proceed?" && output
@@ -124,11 +136,13 @@ function update {
 function desktopmenu {
 selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher - Main menu" \
  --column="Select" --column="Operation" TRUE "Launch a game" FALSE "Add a new game" \
- FALSE "Remove a game from the game list" FALSE "Winetricks (Requires wine and winetricks)" FALSE "Reset $(basename $0)" FALSE "Update $(basename $0)" --height=300 --width=500)
+ FALSE "Remove a game from the game list" FALSE "DXVK OSD HUD (On Screen Display)" FALSE "Winetricks (Requires wine and winetricks)" \
+ FALSE "Reset $(basename $0)" FALSE "Update $(basename $0)" --height=300 --width=500)
 
 grep -q ^Launch <<<"$selectedmenuitem" && launchgame
 grep -q ^Add <<<"$selectedmenuitem" && addgame
 grep -q ^Remove <<<"$selectedmenuitem" && removegame
+grep -q ^DXVK <<<"$selectedmenuitem" && osd
 grep -q ^Winetricks <<<"$selectedmenuitem" && runwinetricks
 grep -q ^Reset <<<"$selectedmenuitem" && reset
 grep -q ^Update <<<"$selectedmenuitem" && update
