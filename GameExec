@@ -59,7 +59,8 @@ function addgame {
  gamename=$(zenity --entry --text="Enter new game name:" --width=300)
  [ "$?" -ne 0 ] && param="--error" && msg="Cancelled." && output && desktopmenu
  [ -z "$gamename" ] && param="--error" && msg="Input cannot be empty." && output && desktopmenu
- [ -f "$gamelist" ] && grep -w "^${gamename}" "$gamelist" >/dev/null && param="--error" && \
+ [ -f "$gamelist" ] && checkgamename=$(grep -Pw "$gamename" "$gamelist" | cut -d '=' -f 1) && \
+  [ ! -z "$checkgamename" ] && \
   msg="Found $gamename already in game list. \nGame names must be unique." && output && addgame
  gamepath=$(zenity --file-selection --title="Select a game executable" --filename "${HOME}/" --file-filter="*.exe")
  [ "$?" -ne 0 ] && param="--error" && msg="Cancelled." && output && desktopmenu
@@ -78,7 +79,7 @@ while IFS= read -r i; do
 done < "$gamelist"
  selectedgame=$(zenity --list --title="Games" --text="Select a game to $action:" --column="Game" "${gamenames[@]}" --height=300 --width=500)
  [[ "$?" -ne 0 || -z "$selectedgame" ]] && desktopmenu
- selectedgamepath=$(grep "^${selectedgame}" "$gamelist" | cut -d '=' -f 2)
+ selectedgamepath=$(grep -Pw "$selectedgame" "$gamelist" | cut -d '=' -f 2)
 }
 
 # Remove game function
@@ -87,7 +88,7 @@ function removegame {
  gameslist
  param="--question" && msg="Are you sure you want to remove ${selectedgame} from the game list?" && output
  [ "$?" -ne 0 ] && param="--info" && msg="Game removal cancelled." && output && desktopmenu
- sed -i "/$selectedgame/d" "$gamelist" && param="--info" && msg="Removed: $selectedgame" && output && desktopmenu
+ sed -i "/\<${selectedgame}\>/d" "$gamelist" && param="--info" && msg="Removed: $selectedgame" && output && desktopmenu
 }
 
 # Winetricks function
