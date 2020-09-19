@@ -7,7 +7,7 @@ With this script you can manage and run Windows games via Proton GE Custom.
  - Added self updating option.
  - Added DXVK OSD HUD option.
 
-![GameExec Screenshot](https://github.com/PerseusArkouda/GameExec/blob/master/GameExec-Screenshot.jpg?raw=true)
+![GameExec Screenshot](https://github.com/PerseusArkouda/GameExec/blob/master/GameExec-Screenshot2.jpg?raw=true)
 
 ### How to use:
  1) Install Steam client and login.
