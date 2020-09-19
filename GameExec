@@ -50,7 +50,11 @@ function launchgame {
  gamepath=$(dirname "$selectedgamepath")
  [ ! -d "$gamepath" ] && param="--error" && msg="Not found game path: ${gamepath}. \nVerify the path is correct and the disk mounted." && output && desktopmenu || cd "$gamepath"
   #ENABLE_VKBASALT=1
- "$gamemode" STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
+ if [ ! -z "$gamemode" ]; then
+  gamemoderun STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
+ else
+  STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
+ fi
  #sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
   echo "Launching ${selectedgame}..." ; echo "$(basename $0) exits and Proton takes over. Watch the terminal for any errors."
   #zenity --progress --pulsate --auto-close --auto-kill --text="Launching ${selectedgame}..."
@@ -107,7 +111,7 @@ function runwinetricks {
 # Enable or disable gamemode
 function enablegamemode {
  [ -z $(whereis gamemoderun | awk '{print $2}') ] && param="--error" && msg="gamemoderun not found installed. Install GameMode and retry." && output && desktopmenu
- [ -z "$gamemode" ] && gamemode="gamemoderun" || gamemode=
+ [ -z "$gamemode" ] && gamemode=1 || gamemode=
  [ -z "$gamemode" ] && gamemodestate="disabled" || gamemodestate="enabled"
  param="--info" && msg="GameMode optimisations are now $gamemodestate." && output && desktopmenu
 }
