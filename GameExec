@@ -7,6 +7,10 @@
 echo "$(echo $'\n\r')#### Linux Game Launcher ####"
 echo "by Perseus"
 
+grep -q desktop <<<"$*" && echo "$(echo $'\n\r')WARNING: $(basename $0) is running through the desktop shortcut." && \
+ echo "         It seems like currently something breaks when launching a game." && \
+ echo "         Prefer running $(basename $0) from a terminal until the issue is resolved."
+
 script=$(realpath "$0")
 scriptpath=$(dirname "$script")
 config="$scriptpath/$(basename $0).conf"
@@ -146,6 +150,8 @@ grep -q ^DXVK <<<"$selectedmenuitem" && osd
 grep -q ^Winetricks <<<"$selectedmenuitem" && runwinetricks
 grep -q ^Reset <<<"$selectedmenuitem" && reset
 grep -q ^Update <<<"$selectedmenuitem" && update
+
+grep -q desktop <<<"$*" && echo "$(basename $0) is running through the desktop shortcut. If you have issues run it from a terminal to be able to watch Proton's output." && sleep 15
 
 echo "$(echo $'\n\r')#### Linux Game Launcher Finished. ####"
 exit 0
