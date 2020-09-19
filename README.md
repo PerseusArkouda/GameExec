@@ -8,7 +8,7 @@ With this script you can manage and run Windows games via Proton GE Custom.
  - Added DXVK OSD HUD option.
 
 Notice: Personally running GameExec from GameExec.desktop causes my games not being able to start.  
-        Prefer running GameExec directly from a terminal. 
+        Prefer running GameExec directly from a terminal until the issue is resolved. 
 
 ![GameExec Screenshot](https://github.com/PerseusArkouda/GameExec/blob/master/GameExec-Screenshot2.jpg?raw=true)
 
