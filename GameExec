@@ -150,7 +150,7 @@ function update {
 function desktopmenu {
 selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher - Main menu" \
  --column="Select" --column="Operation" TRUE "Launch a game" FALSE "Add a new game" \
- FALSE "Remove a game from the game list" FLASE "GameMode optimisations (requires gamemode)" FALSE "DXVK OSD HUD (On Screen Display)" FALSE "Winetricks (Requires wine and winetricks)" \
+ FALSE "Remove a game from the game list" FLASE "GameMode optimisations (requires gamemode)" FALSE "DXVK OSD HUD (On Screen Display)" FALSE "Winetricks (requires wine and winetricks)" \
  FALSE "Reset $(basename $0)" FALSE "Update $(basename $0)" --height=300 --width=500)
 
 grep -q ^Launch <<<"$selectedmenuitem" && launchgame
