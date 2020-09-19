@@ -33,7 +33,6 @@ fi
 # Output in zenity
 function output {
   # --timeout 30 kills both steam and game and --progress stays alive until cancel is pressed without it
-  #[[ "$param" != "--question" || "$param" != "--info" ]] && unset param2
   [ ! -z "$msg" ] && msg="--text=$msg" && param="$param --no-wrap"
   zenity $param "$msg"
 }
@@ -42,7 +41,7 @@ function output {
 function launchgame {
  action="launch"
  gameslist
-# Experimental vulkan renderer.
+ # Experimental vulkan renderer.
  #export RADV_PERFTEST=aco
  gamepath=$(dirname "$selectedgamepath")
  cd "$gamepath"
@@ -60,25 +59,26 @@ function addgame {
  gamename=$(zenity --entry --text="Enter new game name:" --width=300)
  [ "$?" -ne 0 ] && param="--error" && msg="Cancelled." && output && desktopmenu
  [ -z "$gamename" ] && param="--error" && msg="Input cannot be empty." && output && desktopmenu
+ [ -f "$gamelist" ] && grep -w "^${gamename}" "$gamelist" >/dev/null && param="--error" && \
+  msg="Found $gamename already in game list. \nGame names must be unique." && output && addgame
  gamepath=$(zenity --file-selection --title="Select a game executable" --filename "${HOME}/" --file-filter="*.exe")
  [ "$?" -ne 0 ] && param="--error" && msg="Cancelled." && output && desktopmenu
  echo "${gamename}=${gamepath}" >> "$gamelist"
  param="--info" && msg="Success. $gamename added to ${gamelist}." && output
+ sort "$gamelist" > "${gamelist}.tmp" && mv "${gamelist}.tmp" "$gamelist"
  desktopmenu
 }
 
 # Games list function
 function gameslist {
  [ ! -f "$gamelist" ] && param="--error" && msg="Game list not found. Add games first and retry." && output && desktopmenu
- declare -A games
- while IFS= read -r i; do
-  games["$(echo $i | cut -d '=' -f 1)"]="$(echo $i | cut -d '=' -f 2)"
- done < "$gamelist"
- #done < <(sed -r -e 's/([0-9]+)/ \1/' $gamelist | sort -k 2 -n | sed -e 's/ //;')
-
- selectedgame=$(zenity --list --title="Games" --text="Select a game to $action:" --column="Game" "${!games[@]}" --height=300 --width=500)
+gamenames=()
+while IFS= read -r i; do
+ gamenames+=( "$(echo $i | cut -d '=' -f 1)" )
+done < "$gamelist"
+ selectedgame=$(zenity --list --title="Games" --text="Select a game to $action:" --column="Game" "${gamenames[@]}" --height=300 --width=500)
  [[ "$?" -ne 0 || -z "$selectedgame" ]] && desktopmenu
- selectedgamepath="${games[$selectedgame]}"
+ selectedgamepath=$(grep "^${selectedgame}" "$gamelist" | cut -d '=' -f 2)
 }
 
 # Remove game function
@@ -90,6 +90,7 @@ function removegame {
  sed -i "/$selectedgame/d" "$gamelist" && param="--info" && msg="Removed: $selectedgame" && output && desktopmenu
 }
 
+# Winetricks function
 function runwinetricks {
   [ -z $(whereis winetricks | awk '{print $2}') ] && param="--error" && msg="winetricks not found installed. Install winetricks and retry." && output && desktopmenu
   [ -z $(whereis wine | awk '{print $2}') ] && param="--error" && msg="wine not found installed. Install wine and retry." && output && desktopmenu
@@ -132,7 +133,6 @@ grep -q ^Update <<<"$selectedmenuitem" && update
 
 echo "$(echo $'\n\r')#### Linux Game Launcher Finished. ####"
 exit 0
-#[[ "$?" != 0 || -z "$selectedmenuitem" ]] && param="--question" && msg="Are you sure you want to exit?" --------
 }
 
 # Drop error if zenity is not installed
@@ -154,7 +154,6 @@ if [ "$?" -ne 0 ]; then
 else
  chk || steam &
  chk || (param="--info" && msg="Starting Steam...\n(Press OK only after you have logged in on Steam)" && output)
- #chk || (param="--error" && msg="Steam still not running. Exiting." && output && exit 1)
 fi
 
 # Check if Proton is installed and also check for update
@@ -203,7 +202,7 @@ if [ ! -f "$config" ]; then
 fi
 
 # Checking if update was successful
-grep -q success <<<"$*" &>/dev/null && param="--info" && msg="$(basename $0) Updated Successfully." && output
+grep -q success <<<"$*" && param="--info" && msg="$(basename $0) Updated Successfully." && output
 
 # Main program execution
 echo
