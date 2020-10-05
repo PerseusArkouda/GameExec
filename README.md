@@ -39,3 +39,5 @@ Modifications are possible by editing GameExec.conf (or creating if not existing
 [Link to Proton GE Custom](https://github.com/GloriousEggroll/proton-ge-custom)  
 [Link to GameMode](https://github.com/FeralInteractive/gamemode)
 
+#### Recommended:
+[CoreCtrl](https://gitlab.com/corectrl/corectrl)
