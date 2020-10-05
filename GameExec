@@ -4,7 +4,8 @@
 #  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
-echo "$(echo $'\n\r')#### Linux Game Launcher ####"
+version="1.0"
+echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
 echo "by Perseus"
 
 grep -q desktop <<<"$*" && echo "$(echo $'\n\r')WARNING: $(basename $0) is running through the desktop shortcut." && \
@@ -118,7 +119,7 @@ function enablegamemode {
 
 # Enable or disable OSD function
 function osd {
- selectedosditem=$(zenity --list --radiolist --text="Linux Game Launcher - OSD menu" \
+ selectedosditem=$(zenity --list --radiolist --text="Linux Game Launcher v${version} - OSD menu" \
  --column="Select" --column="Operation" FALSE "Basic info (Just FPS and GPU usage info)" \
  TRUE "Normal info (More detailed info of GPU, Drivers etc)" FALSE "Full info (All available items displayed)" \
  FALSE "Disable DXVK OSD HUD" --height=300 --width=500)
@@ -152,7 +153,7 @@ function update {
 
 # Main menu function
 function desktopmenu {
-selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher - Main menu" \
+selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher v${version} - Main menu" \
  --column="Select" --column="Operation" TRUE "Launch a game" FALSE "Add a new game" \
  FALSE "Remove a game from the game list" FLASE "GameMode optimisations (requires gamemode)" FALSE "DXVK OSD HUD (On Screen Display)" FALSE "Winetricks (requires wine and winetricks)" \
  FALSE "Reset $(basename $0)" FALSE "Update $(basename $0)" --height=300 --width=500)
