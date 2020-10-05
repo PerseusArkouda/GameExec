@@ -207,20 +207,18 @@ protononline="$protondir"
 if [ ! -f "$protonexec" ] || [ ! -z "$updateproton" ]; then
  [ ! -f "$protonexec" ] && param="--question" && msg="Proton GE Custom not found installed or not configured. \nWould you like to verify or install it now?" && output && \
   [ "$?" -ne 0 ] && param="--error" && msg="Cannot start without Proton GE Custom installed. Exiting." && output && exit 1
- (
-  echo "Installing $protononline..."
-  [ ! -z "$updateproton" ] && printf "Cleaning previously installed Proton GE Custom..." && rm -rf "${compatpath}/${protoninstalled}" && echo "Done."
-  mkdir -p "$compatpath" && \
-   curl -L "${protonurl}" -o "${compatpath}/Proton.tar.gz" && \
-   printf "Uncompressing..." && \
-   rm -rf "$protonfullpath" 2>/dev/null && \
-   tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" && \
-   rm "${compatpath}/Proton.tar.gz" && \
-   echo "Done." && \
-   protonexec="${protonfullpath}/proton" && \
-  ) | zenity --progress --text "Downloading and Installing Proton Custom GE..."
-  param="--info" && msg="$protondir is now installed." && output
-  [ -f "$config" ] && sed -i "s/${protoninstalled}/${protononline}/" "$config"
+ echo "Installing $protononline..."
+ [ ! -z "$updateproton" ] && printf "Cleaning previously installed Proton GE Custom..." && rm -rf "${compatpath}/${protoninstalled}" && echo "Done."
+ mkdir -p "$compatpath" && \
+ ( curl -L "${protonurl}" -o "${compatpath}/Proton.tar.gz" ) | zenity --progress --text "Downloading Proton Custom GE..." && \
+ printf "Uncompressing..." && \
+ rm -rf "$protonfullpath" 2>/dev/null && \
+ tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" && \
+ rm "${compatpath}/Proton.tar.gz" && \
+ echo "Done." && \
+ protonexec="${protonfullpath}/proton" && \
+ param="--info" && msg="$protondir is now installed." && output
+ [ -f "$config" ] && sed -i "s/${protoninstalled}/${protononline}/" "$config"
 else
  [ ! -f "$config" ] && param="--info" && msg="$protondir found installed and will be added to the config." && output || echo
 fi
