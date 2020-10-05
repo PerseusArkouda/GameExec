@@ -205,19 +205,20 @@ protononline="$protondir"
 
 # Drop error if Proton not installed and offer auto install or update
 if [ ! -f "$protonexec" ] || [ ! -z "$updateproton" ]; then
- [ ! -f "$protonexec" ] && param="--question" && msg="Proton GE Custom not found installed or not configured. \nWould you like to verify or install it now?" && output
+ [ ! -f "$protonexec" ] && param="--question" && msg="Proton GE Custom not found installed or not configured. \nWould you like to verify or install it now?" && output && \
   [ "$?" -ne 0 ] && param="--error" && msg="Cannot start without Proton GE Custom installed. Exiting." && output && exit 1
-# ADD ZENITY PROGRESS HERE
- echo "Installing $protononline..."
- [ ! -z "$updateproton" ] && printf "Cleaning previously installed Proton GE Custom..." && rm -rf "${compatpath}/${protoninstalled}" && echo "Done."
- mkdir -p "$compatpath" && \
-  curl -L "${protonurl}" -o "${compatpath}/Proton.tar.gz" && \
-  printf "Uncompressing..." && \
-  rm -rf "$protonfullpath" 2>/dev/null && \
-  tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" && \
-  rm "${compatpath}/Proton.tar.gz" && \
-  echo "Done." && \
-  protonexec="${protonfullpath}/proton" && \
+ (
+  echo "Installing $protononline..."
+  [ ! -z "$updateproton" ] && printf "Cleaning previously installed Proton GE Custom..." && rm -rf "${compatpath}/${protoninstalled}" && echo "Done."
+  mkdir -p "$compatpath" && \
+   curl -L "${protonurl}" -o "${compatpath}/Proton.tar.gz" && \
+   printf "Uncompressing..." && \
+   rm -rf "$protonfullpath" 2>/dev/null && \
+   tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" && \
+   rm "${compatpath}/Proton.tar.gz" && \
+   echo "Done." && \
+   protonexec="${protonfullpath}/proton" && \
+  ) | zenity --progress --text "Downloading and Installing Proton Custom GE..."
   param="--info" && msg="$protondir is now installed." && output
   [ -f "$config" ] && sed -i "s/${protoninstalled}/${protononline}/" "$config"
 else
