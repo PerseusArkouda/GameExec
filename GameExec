@@ -4,7 +4,8 @@
 #  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
-version="1.0"
+version="1.1"
+changes="Changelog: \nFixed Proton updating process. \nImproved Proton update progres.\nOther minor fixes."
 echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
 echo "by Perseus"
 
@@ -18,7 +19,7 @@ config="$scriptpath/$(basename $0).conf"
 gamelist="$scriptpath/GameList.txt"
 compatpath="${HOME}/.steam/root/compatibilitytools.d"
 [ ! -d "$compatpath" ] && mkdir -p "$compatpath"
-protonexist=$(ls "$compatpath" | grep "Proton")
+protonexist=$(ls -d "$compatpath" | grep "Proton")
 
 if [ -f "$config" ]; then
  # Reading values from conf if exist
@@ -200,25 +201,41 @@ protonfile=$(basename "$protonurl")
 protondir="${protonfile/.tar.gz/}"
 protonfullpath="${compatpath}/${protondir}"
 protononline="$protondir"
-[ ! -z "$protoninstalled" ] && [ ! -z "$protononline" ] && [ "$protoninstalled" != "$protononline" ] && \
+[ -f "$protonexec" ] && [ ! -z "$protononline" ] && [ "$protoninstalled" != "$protononline" ] && \
  param="--question" && msg="An updated version of Proton GE Custom is available online: ${protononline}. \nWould you like to update it now?" && output && \
-  [ "$?" -eq 0 ] && updateproton=1
+ [ "$?" -eq 0 ] && updateproton=1
 
 # Drop error if Proton not installed and offer auto install or update
 if [ ! -f "$protonexec" ] || [ ! -z "$updateproton" ]; then
- [ ! -f "$protonexec" ] && param="--question" && msg="Proton GE Custom not found installed or not configured. \nWould you like to verify or install it now?" && output && \
+ [ ! -f "$protonexec" ] && param="--question" && msg="Proton GE Custom not found installed or not configured. \nWould you like to verify or install it now?" && output
   [ "$?" -ne 0 ] && param="--error" && msg="Cannot start without Proton GE Custom installed. Exiting." && output && exit 1
- echo "Installing $protononline..."
- [ ! -z "$updateproton" ] && printf "Cleaning previously installed Proton GE Custom..." && rm -rf "${compatpath}/${protoninstalled}" && echo "Done."
- mkdir -p "$compatpath" && \
- ( curl -L "${protonurl}" -o "${compatpath}/Proton.tar.gz" ) | zenity --progress --text "Downloading Proton Custom GE..." && \
- printf "Uncompressing..." && \
- rm -rf "$protonfullpath" 2>/dev/null && \
- tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" && \
- rm "${compatpath}/Proton.tar.gz" && \
- echo "Done." && \
- protonexec="${protonfullpath}/proton" && \
- param="--info" && msg="$protondir is now installed." && output
+ (
+  echo "1" ; sleep 1
+  echo "# Installing $protononline..." ; sleep 1
+  echo "5" ; sleep 1
+  echo "# Cleaning previously installed Proton GE Custom if exist..." ; sleep 1
+  [ -f "$protonexec" ] && rm -rf "${compatpath}/${protoninstalled}" ; sleep 1
+  echo "7" ; sleep 1
+  echo "# Creating $compatpath if not exist..." ; sleep 1
+  mkdir -p "$compatpath" ; sleep 1
+  echo "10" ; sleep 1
+  echo "# Downloading ${protononline}..." ; sleep 1
+  curl -L "${protonurl}" -o "${compatpath}/Proton.tar.gz" ; sleep 1
+  echo "60" ; sleep 1
+  echo "# Uncompressing ${protononline}..." ; sleep 1
+  rm -rf "$protonfullpath" 2>/dev/null ; sleep 1
+  tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" ; sleep 1
+  echo "90" ; sleep 1
+  echo "# Cleaning up..." ; sleep 1
+  rm "${compatpath}/Proton.tar.gz" ; sleep 1
+  protonexec="${protonfullpath}/proton" ; sleep 1
+  echo "99" ; sleep 1
+  echo "# Done." ; sleep 1
+  echo "100" ; sleep 1
+ ) |
+  zenity --progress --text "Downloading ${protononline}..." --pulsate --no-cancel --auto-close
+ [ "$?" = -1 ] && param="--error" && msg="Update Proton GE Custom cancelled." && output || \
+  param="--info" && msg="$protondir is now installed." && output
  [ -f "$config" ] && sed -i "s/${protoninstalled}/${protononline}/" "$config"
 else
  [ ! -f "$config" ] && param="--info" && msg="$protondir found installed and will be added to the config." && output || echo
@@ -239,7 +256,7 @@ if [ ! -f "$config" ]; then
 fi
 
 # Checking if update was successful
-grep -q success <<<"$*" && param="--info" && msg="$(basename $0) Updated Successfully." && output
+grep -q success <<<"$*" && param="--info" && msg="$(basename $0) Updated Successfully. \n${changes}" && output
 
 # Main program execution
 echo
