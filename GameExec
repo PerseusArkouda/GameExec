@@ -4,8 +4,8 @@
 #  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
-version="1.1"
-changes="Changelog: \nFixed Proton updating process. \nImproved Proton update progres.\nOther minor fixes."
+version="1.3"
+changes="\nChangelog: \nAdded ability to include game supported launch parameters (separate each by spaces)."
 echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
 echo "by Perseus"
 
@@ -53,9 +53,9 @@ function launchgame {
  [ ! -d "$gamepath" ] && param="--error" && msg="Not found game path: ${gamepath}. \nVerify the path is correct and the disk mounted." && output && desktopmenu || cd "$gamepath"
   #ENABLE_VKBASALT=1
  if [ ! -z "$gamemode" ]; then
-  gamemoderun STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
+  gamemoderun STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
  else
-  STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" &
+  STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
  fi
  #sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
   echo "Launching ${selectedgame}..." ; echo "$(basename $0) exits and Proton takes over. Watch the terminal for any errors."
@@ -75,7 +75,8 @@ function addgame {
   msg="Found $gamename already in game list. \nGame names must be unique." && output && addgame
  gamepath=$(zenity --file-selection --title="Select a game executable" --filename "${HOME}/" --file-filter="*.exe")
  [ "$?" -ne 0 ] && param="--error" && msg="Cancelled." && output && desktopmenu
- echo "${gamename}=${gamepath}" >> "$gamelist"
+ gameparams=$(zenity --entry --text="Enter launch parameters if you want or else just press OK:" --width=300)
+ [ ! -z "$gameparams" ] && echo "${gamename}=${gamepath}=${gameparams}" >> "$gamelist" || echo "${gamename}=${gamepath}" >> "$gamelist"
  param="--info" && msg="Success. $gamename added to ${gamelist}." && output
  sort "$gamelist" > "${gamelist}.tmp" && mv "${gamelist}.tmp" "$gamelist"
  desktopmenu
@@ -91,6 +92,7 @@ done < "$gamelist"
  selectedgame=$(zenity --list --title="Games" --text="Select a game to $action:" --column="Game" "${gamenames[@]}" --height=300 --width=500)
  [[ "$?" -ne 0 || -z "$selectedgame" ]] && desktopmenu
  selectedgamepath=$(grep -Pw "$selectedgame" "$gamelist" | cut -d '=' -f 2)
+ gameparams=$(grep -Pw "$selectedgame" "$gamelist" | cut -d '=' -f 3)
 }
 
 # Remove game function
