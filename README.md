@@ -4,10 +4,6 @@
 With this script you can manage and run Windows games via Proton GE Custom.
  - Can be executed either by running ./GameExec directly from the terminal or by running GameExec.desktop from a file manager.
  - Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
- - Added self updating option.
- - Added DXVK OSD HUD option.
- - Added GameMode Optimisations option.
-
 Notice: Personally running GameExec from GameExec.desktop causes my games not being able to start.
         Prefer running GameExec directly from a terminal until the issue is resolved.
 
