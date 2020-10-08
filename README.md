@@ -25,6 +25,7 @@ Notice: Personally running GameExec from GameExec.desktop causes my games not be
  - Linux Steam client
  - Proton GE Custom (offers auto install if not found)
  - An already installed Windows game (it's possible also to be able to install games or programs).
+ - CoreCtrl (Optional but recommended for better gaming experience. Link below)
  - GameMode (Optional for better gaming experience. Link below)
  - wine (Optional required for winetricks)
  - winetricks (Optional for installing additional Windows software)
@@ -37,7 +38,5 @@ Modifications are possible by editing GameExec.conf (or creating if not existing
 
 [Guide to install GPU drivers and Vulkan](https://github.com/lutris/docs/blob/master/InstallingDrivers.md)  
 [Link to Proton GE Custom](https://github.com/GloriousEggroll/proton-ge-custom)  
-[Link to GameMode](https://github.com/FeralInteractive/gamemode)
-
-#### Recommended:
-[CoreCtrl](https://gitlab.com/corectrl/corectrl)
+[Link to GameMode](https://github.com/FeralInteractive/gamemode)  
+[Link to CoreCtrl](https://gitlab.com/corectrl/corectrl) - Recommended
