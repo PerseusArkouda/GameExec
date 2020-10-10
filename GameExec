@@ -4,8 +4,8 @@
 #  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
-version="1.4"
-changes="\nChangelog: \nAdded Start CoreCtrl ability as it improves greatly the performance."
+version="1.5"
+changes="\nChangelog: \nAdded verification if proton bottle exist and prompts to select one or create new if not.\nImproved the process of creating a new config or updating it."
 echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
 echo "by Perseus"
 
@@ -254,16 +254,17 @@ else
  [ ! -f "$config" ] && param="--info" && msg="$protondir found installed and will be added to the config." && output || echo
 fi
 
-# Creating config file if not found
-if [ ! -f "$config" ]; then
- msg="Select an existing bottle or create an empty directory to make a new Proton bottle."
- param="--info" && msg="Config not found. Creating new config... \n${msg} " && output
+# Creating config file if not found or if missing proton bottle directory
+if [ ! -f "$config" ] || [ ! -d "$protonbottle" ]; then
+ [ -f "$config" ] && [ ! -d "$protonbottle" ] && msg="Proton bottle not found. Press OK to select one or create another." && output
+ [ ! -f "$config" ] && param="--info" && msg="Config not found. Press OK to create a new config." && output
  echo "ProtonExec=${protonexec}" > "$config"
  while true; do
+  msg="Select an existing bottle or create an empty directory to make a new Proton bottle."
   protonbottle=$(zenity --file-selection --title="$msg" --directory --filename "${HOME}/")
   echo "Directory selected: $protonbottle"
   [ -d "$protonbottle" ] && echo "ProtonBottle=${protonbottle}" >> "$config" && \
-   param="--info" && msg="$config config is successfully created." && output && break
+   param="--info" && msg="$config config is successfully created or updated." && output && break
   param="--error" && msg="This is not a correct directory for Proton Bottle. \nTry again." && output
  done
 fi
