@@ -220,8 +220,10 @@ protononline="$protondir"
 
 # Drop error if Proton not installed and offer auto install or update
 if [ ! -f "$protonexec" ] || [ ! -z "$updateproton" ]; then
- [ ! -f "$protonexec" ] && param="--question" && msg="Proton GE Custom not found installed or not configured. \nWould you like to verify or install it now?" && output
-  [ "$?" = -1 ] && param="--error" && msg="Cannot start without Proton GE Custom installed. Exiting." && output && exit 1
+ if [ ! -f "$protonexec" ]; then
+   param="--question" && msg="Proton GE Custom not found installed or not configured. \nWould you like to verify or install it now?" && output
+   [ "$?" -ne 0 ] && param="--error" && msg="Cannot start without Proton GE Custom installed. Exiting." && output && exit 1
+ fi
  (
   echo "1" ; sleep 1
   echo "# Installing $protononline..." ; sleep 1
@@ -247,7 +249,7 @@ if [ ! -f "$protonexec" ] || [ ! -z "$updateproton" ]; then
   echo "100" ; sleep 1
  ) |
   zenity --progress --text "Downloading ${protononline}..." --pulsate --no-cancel --auto-close
- [ "$?" = -1 ] && param="--error" && msg="Update Proton GE Custom cancelled." && output || \
+ [ "$?" -ne 0 ] && param="--error" && msg="Update Proton GE Custom cancelled." && output || \
   param="--info" && msg="$protondir is now installed." && output
  [ -f "$config" ] && sed -i "s/${protoninstalled}/${protononline}/" "$config"
 else
