@@ -4,8 +4,8 @@
 #  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
-version="1.5"
-changes="\nChangelog: \nAdded verification if proton bottle exist and prompts to select one or create new if not.\nImproved the process of creating a new config or updating it."
+version="1.6"
+changes="\nChangelog: \nFixed a bug not allowing Proton update to proceed."
 echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
 echo "by Perseus"
 
