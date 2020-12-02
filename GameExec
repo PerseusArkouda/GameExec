@@ -4,41 +4,37 @@
 #  Remember to edit the script's path in GameExec.desktop if you plan to move it to a different directory from GameExec.
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
-version="1.6"
-changes="\nChangelog: \nFixed a bug not allowing Proton update to proceed."
+# Version variables
+version="2.0"
+changes="\nChangelog: \nRemoved Proton update check from startup. \nAdded Proton update check option. \nNewer Proton installation will not result to uninstall the previous versions. \nAdded Option to set Proton version. \nOther bug fixes."
+
+# Start up greeting
 echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
 echo "by Perseus"
 
+# Start up warning(s)
 grep -q desktop <<<"$*" && echo "$(echo $'\n\r')WARNING: $(basename $0) is running through the desktop shortcut." && \
  echo "         It seems like currently something breaks when launching a game." && \
  echo "         Prefer running $(basename $0) from a terminal until the issue is resolved."
 
+# Basic variables
 script=$(realpath "$0")
 scriptpath=$(dirname "$script")
 config="$scriptpath/$(basename $0).conf"
 gamelist="$scriptpath/GameList.txt"
 compatpath="${HOME}/.steam/root/compatibilitytools.d"
 [ ! -d "$compatpath" ] && mkdir -p "$compatpath"
-protonexist=$(ls -d "$compatpath" | grep "Proton")
 
+# Basic functionality check
 if [ -f "$config" ]; then
  # Reading values from conf if exist
  protonbottle=$(grep "ProtonBottle" "$config" | cut -d "=" -f 2)
  protonexec=$(grep "ProtonExec" "$config" | cut -d "=" -f 2)
  [ ! -z "$protonexec" ] && protoninstalled=$(dirname "$protonexec" | xargs basename)
- # Fixing ProtonExec path in conf if different from existing path
- [ ! -z "$protonexist" ] && [ "$protonexist" != "$protoninstalled" ] && \
-  sed -i "s/${protoninstalled}/${protonexist}/" "$config" && \
-  protoninstalled="$protonexist" && protonexec="${compatpath}/${protoninstalled}/proton"
-else
- # Setting proton executable path if exist even without a conf
- [ ! -z "$protonexist" ] && protonexec="${compatpath}/${protonexist}/proton" || protonexec=""
- [ ! -z "$protonexec" ] && protoninstalled=$(dirname "$protonexec" | xargs basename)
 fi
 
 # Output in zenity
 function output {
-  # --timeout 30 kills both steam and game and --progress stays alive until cancel is pressed without it
   [ ! -z "$msg" ] && msg="--text=$msg" && param="$param --no-wrap"
   zenity $param "$msg"
 }
@@ -47,16 +43,16 @@ function output {
 function launchgame {
  action="launch"
  gameslist
- # Experimental vulkan renderer.
- #export RADV_PERFTEST=aco
  gamepath=$(dirname "$selectedgamepath")
  [ ! -d "$gamepath" ] && param="--error" && msg="Not found game path: ${gamepath}. \nVerify the path is correct and the disk mounted." && output && desktopmenu || cd "$gamepath"
   #ENABLE_VKBASALT=1
  if [ ! -z "$gamemode" ]; then
   gamemoderun STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
  else
+ # testing: PROTON_NO_ESYNC=1 PROTON_DUMP_DEBUG_COMMANDS=1
   STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
  fi
+ # Checking if game has started
  #sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
   echo "Launching ${selectedgame}..." ; echo "$(basename $0) exits and Proton takes over. Watch the terminal for any errors."
   #zenity --progress --pulsate --auto-close --auto-kill --text="Launching ${selectedgame}..."
@@ -85,14 +81,14 @@ function addgame {
 # Games list function
 function gameslist {
  [ ! -f "$gamelist" ] && param="--error" && msg="Game list not found. Add games first and retry." && output && desktopmenu
-gamenames=()
-while IFS= read -r i; do
- gamenames+=( "$(echo $i | cut -d '=' -f 1)" )
-done < "$gamelist"
- selectedgame=$(zenity --list --title="Games" --text="Select a game to $action:" --column="Game" "${gamenames[@]}" --height=330 --width=500)
- [[ "$?" -ne 0 || -z "$selectedgame" ]] && desktopmenu
- selectedgamepath=$(grep -Pw "$selectedgame" "$gamelist" | cut -d '=' -f 2)
- gameparams=$(grep -Pw "$selectedgame" "$gamelist" | cut -d '=' -f 3)
+ gamenames=()
+ while IFS= read -r i; do
+  gamenames+=( "$(echo $i | cut -d '=' -f 1)" )
+ done < "$gamelist"
+  selectedgame=$(zenity --list --title="Games" --text="Select a game to $action:" --column="Game" "${gamenames[@]}" --height=330 --width=500)
+  [[ "$?" -ne 0 || -z "$selectedgame" ]] && desktopmenu
+  selectedgamepath=$(grep -Pw "$selectedgame" "$gamelist" | cut -d '=' -f 2)
+  gameparams=$(grep -Pw "$selectedgame" "$gamelist" | cut -d '=' -f 3)
 }
 
 # Remove game function
@@ -152,6 +148,17 @@ function reset {
  exit 0
 }
 
+function set_proton_version {
+ ls -d ${compatpath}/* | grep "Proton.*GE" > /tmp/protonversionsinstalled.txt
+ while IFS= read -r i; do
+  protonversions+=( "$(basename $i)" )
+ done </tmp/protonversionsinstalled.txt
+ selectedprotonversion=$(zenity --list --title="Installed Proton GE Custom versions" --text="Select a version:" --column="Proton GE Custom version" "${protonversions[@]}" --height=330 --width=500)
+ [ "$?" -eq 0 ] && sed -i "s/${protoninstalled}/${selectedprotonversion}/" "$config" && protoninstalled="$selectedprotonversion" && \
+  param="--info" && msg="$selectedprotonversion is set." && output
+ desktopmenu
+}
+
 # Update script function
 function update {
  url="https://raw.githubusercontent.com/PerseusArkouda/GameExec/master/GameExec"
@@ -161,7 +168,106 @@ function update {
  [ "$?" -eq 0 ] && cp "$newscript" "$script" && rm -f "$newscript" && \
  echo "Done!" && echo "$(echo $'\n\r')Restarting $(basename $0)..." && \
   $script "success" && exit 0 || \
-  param="--error" && msg="$(basename $0) update failed!" && output
+  param="--error" && msg="$(basename $0) update failed!" && output && desktopmenu
+}
+
+# Drop error if zenity is not installed function
+function chk_zenity {
+ [ -z "$(whereis zenity | awk '{print $2}')" ] && \
+  echo "zenity was not found installed. Install zenity and try again. Exiting." && exit 1
+}
+
+# Drop warning if steam is not installed function and not running
+function chk_steam {
+ [ -z "$(whereis steam | awk '{print $2}')" ] && \
+  param="--error" && msg="Steam cannot be found installed. Install Steam and try again. Exiting." && output && exit 1
+
+ # Check if Steam is running
+ function chk {
+  pgrep -x steam >/dev/null
+ }
+
+ chk || (param="--question" && msg="Steam is not running. Run now?" && output)
+ if [ "$?" -ne 0 ]; then
+  param="--error" && msg="WARNING: You can only run games which don't require Steam to run." && output
+ else
+  chk || steam &
+  chk || (param="--info" && msg="Starting Steam...\n(Press OK only after you have logged in on Steam)" && output)
+ fi
+}
+
+# Check if proton update is available and offer to install
+function chk_proton_update {
+ protonurl="https://github.com$(curl -s -L https://github.com/GloriousEggroll/proton-ge-custom/releases/latest | grep 'tar.gz' | head -1 | cut -d '"' -f 2)"
+ protonfile=$(basename "$protonurl")
+ protondir="${protonfile/.tar.gz/}"
+ protononline="$protondir"
+ protonfullpath="${compatpath}/${protondir}"
+ if [ -f "$protonexec" ] && [ ! -z "$protononline" ]; then
+  if [ "$protoninstalled" != "$protononline" ]; then
+   param="--question" && msg="An updated version of Proton GE Custom is available online: ${protononline}. \nWould you like to update now?" && output
+   [ "$?" -eq 0 ] && updateproton=1 || param="--info" && msg="Proton GE Custom update cancelled." && output && desktopmenu
+  fi
+ fi
+
+ if [ ! -z "$updateproton" ]; then
+  (
+    echo "1" ; sleep 1
+    echo "# Installing $protononline..." ; sleep 1
+    echo "5" ; sleep 1
+    echo "# Creating $compatpath if not exist..." ; sleep 1
+    mkdir -p "$compatpath" ; sleep 1
+    echo "10" ; sleep 1
+    echo "# Downloading ${protononline}..." ; sleep 1
+     curl -L "${protonurl}" -o "${compatpath}/Proton.tar.gz" ; sleep 1
+    echo "60" ; sleep 1
+    echo "# Uncompressing ${protononline}..." ; sleep 1
+    rm -rf "$protonfullpath" 2>/dev/null ; sleep 1
+    tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" ; sleep 1
+    echo "90" ; sleep 1
+    echo "# Cleaning up..." ; sleep 1
+    rm "${compatpath}/Proton.tar.gz" ; sleep 1
+    protonexec="${protonfullpath}/proton" ; sleep 1
+    echo "99" ; sleep 1
+    echo "# Done." ; sleep 1
+    echo "100" ; sleep 1
+  ) |
+   zenity --progress --text "Downloading ${protononline}..." --pulsate --no-cancel --auto-close
+  [ "$?" -ne 0 ] && param="--error" && msg="Update Proton GE Custom cancelled." && output || \
+   param="--info" && msg="$protondir is now installed." && output
+  [ -f "$config" ] && sed -i "s/${protoninstalled}/${protononline}/" "$config"
+ else
+  param="--info" && msg="Proton GE Custom is up to date." && output
+ fi
+ [ "$1" != "startup" ] && desktopmenu
+}
+
+# Check if Proton is installed and offer auto install if not function
+function chk_proton {
+ if [ ! -f "$protonexec" ]; then
+  param="--question" && msg="Proton GE Custom not found installed or not configured. \nWould you like to verify or install it now?" && output
+   [ "$?" -ne 0 ] && param="--error" && msg="Cannot start without Proton GE Custom installed. Exiting." && output && exit 1
+  updateproton=1 && chk_proton_update $1
+ elif [ ! -f "$config" ]; then
+  param="--info" && msg="$protondir found installed and will be added to the config." && output
+ fi
+}
+
+# Creating config file if not found or if missing proton bottle directory function
+function chk_config {
+ if [ ! -f "$config" ] || [ ! -d "$protonbottle" ]; then
+  [ -f "$config" ] && [ ! -d "$protonbottle" ] && msg="Proton bottle not found. Press OK to select one or create another." && output
+  [ ! -f "$config" ] && param="--info" && msg="Config not found. Press OK to create a new config." && output
+  echo "ProtonExec=${protonexec}" > "$config"
+  while true; do
+   msg="Select an existing bottle or create an empty directory to make a new Proton bottle."
+   protonbottle=$(zenity --file-selection --title="$msg" --directory --filename "${HOME}/")
+   echo "Directory selected: $protonbottle"
+   [ -d "$protonbottle" ] && echo "ProtonBottle=${protonbottle}" >> "$config" && \
+    param="--info" && msg="$config config is successfully created or updated." && output && break
+   param="--error" && msg="This is not a correct directory for Proton Bottle. \nTry again." && output && chk_config
+  done
+ fi
 }
 
 # Main menu function
@@ -169,7 +275,7 @@ function desktopmenu {
 selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher v${version} - Main menu" \
  --column="Select" --column="Operation" TRUE "Launch a game" FALSE "Add a new game" \
  FALSE "Remove a game from the game list" FALSE "CoreCtrl (requires corectrl)" FALSE "GameMode optimisations (requires gamemode)" FALSE "DXVK OSD HUD (On Screen Display)" FALSE "Winetricks (requires wine and winetricks)" \
- FALSE "Reset $(basename $0)" FALSE "Update $(basename $0)" --height=330 --width=500)
+ FALSE "Reset $(basename $0)" FALSE "Update $(basename $0)" FALSE "Set Proton GE Custom version" FALSE "Check Proton GE Custom for updates" --height=370 --width=500)
 
 grep -q ^Launch <<<"$selectedmenuitem" && launchgame
 grep -q ^Add <<<"$selectedmenuitem" && addgame
@@ -180,6 +286,8 @@ grep -q ^DXVK <<<"$selectedmenuitem" && osd
 grep -q ^Winetricks <<<"$selectedmenuitem" && runwinetricks
 grep -q ^Reset <<<"$selectedmenuitem" && reset
 grep -q ^Update <<<"$selectedmenuitem" && update
+grep -q ^Set <<<"$selectedmenuitem" && set_proton_version
+grep -q ^Check <<<"$selectedmenuitem" && chk_proton_update
 
 grep -q desktop <<<"$*" && echo "$(basename $0) is running through the desktop shortcut. If you have issues run it from a terminal to be able to watch Proton's output." && sleep 15
 
@@ -187,89 +295,13 @@ echo "$(echo $'\n\r')#### Linux Game Launcher Finished. ####"
 exit 0
 }
 
-# Drop error if zenity is not installed
-[ -z "$(whereis zenity | awk '{print $2}')" ] && \
- echo "zenity was not found installed. Install zenity and try again. Exiting." && exit 1
+chk_zenity
 
-# Drop error if steam is not installed
-[ -z "$(whereis steam | awk '{print $2}')" ] && \
- param="--error" && msg="Steam cannot be found installed. Install Steam and try again. Exiting." && output && exit 1
+chk_steam
 
-# Check if Steam is running
-function chk {
- pgrep steam >/dev/null
-}
+chk_proton startup
 
-chk || (param="--question" && msg="Steam is not running. Run now?" && output)
-if [ "$?" -ne 0 ]; then
- param="--error" && msg="WARNING: You can only run games which don't require Steam to run." && output
-else
- chk || steam &
- chk || (param="--info" && msg="Starting Steam...\n(Press OK only after you have logged in on Steam)" && output)
-fi
-
-# Check if Proton is installed and also check for update
-protonurl="https://github.com$(curl -s -L https://github.com/GloriousEggroll/proton-ge-custom/releases/latest | grep 'tar.gz' | head -1 | cut -d '"' -f 2)"
-protonfile=$(basename "$protonurl")
-protondir="${protonfile/.tar.gz/}"
-protonfullpath="${compatpath}/${protondir}"
-protononline="$protondir"
-[ -f "$protonexec" ] && [ ! -z "$protononline" ] && [ "$protoninstalled" != "$protononline" ] && \
- param="--question" && msg="An updated version of Proton GE Custom is available online: ${protononline}. \nWould you like to update it now?" && output && \
- [ "$?" -eq 0 ] && updateproton=1
-
-# Drop error if Proton not installed and offer auto install or update
-if [ ! -f "$protonexec" ] || [ ! -z "$updateproton" ]; then
- if [ ! -f "$protonexec" ]; then
-   param="--question" && msg="Proton GE Custom not found installed or not configured. \nWould you like to verify or install it now?" && output
-   [ "$?" -ne 0 ] && param="--error" && msg="Cannot start without Proton GE Custom installed. Exiting." && output && exit 1
- fi
- (
-  echo "1" ; sleep 1
-  echo "# Installing $protononline..." ; sleep 1
-  echo "5" ; sleep 1
-  echo "# Cleaning previously installed Proton GE Custom if exist..." ; sleep 1
-  [ -f "$protonexec" ] && rm -rf "${compatpath}/${protoninstalled}" ; sleep 1
-  echo "7" ; sleep 1
-  echo "# Creating $compatpath if not exist..." ; sleep 1
-  mkdir -p "$compatpath" ; sleep 1
-  echo "10" ; sleep 1
-  echo "# Downloading ${protononline}..." ; sleep 1
-  curl -L "${protonurl}" -o "${compatpath}/Proton.tar.gz" ; sleep 1
-  echo "60" ; sleep 1
-  echo "# Uncompressing ${protononline}..." ; sleep 1
-  rm -rf "$protonfullpath" 2>/dev/null ; sleep 1
-  tar xfz "${compatpath}/Proton.tar.gz" --directory "${compatpath}/" ; sleep 1
-  echo "90" ; sleep 1
-  echo "# Cleaning up..." ; sleep 1
-  rm "${compatpath}/Proton.tar.gz" ; sleep 1
-  protonexec="${protonfullpath}/proton" ; sleep 1
-  echo "99" ; sleep 1
-  echo "# Done." ; sleep 1
-  echo "100" ; sleep 1
- ) |
-  zenity --progress --text "Downloading ${protononline}..." --pulsate --no-cancel --auto-close
- [ "$?" -ne 0 ] && param="--error" && msg="Update Proton GE Custom cancelled." && output || \
-  param="--info" && msg="$protondir is now installed." && output
- [ -f "$config" ] && sed -i "s/${protoninstalled}/${protononline}/" "$config"
-else
- [ ! -f "$config" ] && param="--info" && msg="$protondir found installed and will be added to the config." && output || echo
-fi
-
-# Creating config file if not found or if missing proton bottle directory
-if [ ! -f "$config" ] || [ ! -d "$protonbottle" ]; then
- [ -f "$config" ] && [ ! -d "$protonbottle" ] && msg="Proton bottle not found. Press OK to select one or create another." && output
- [ ! -f "$config" ] && param="--info" && msg="Config not found. Press OK to create a new config." && output
- echo "ProtonExec=${protonexec}" > "$config"
- while true; do
-  msg="Select an existing bottle or create an empty directory to make a new Proton bottle."
-  protonbottle=$(zenity --file-selection --title="$msg" --directory --filename "${HOME}/")
-  echo "Directory selected: $protonbottle"
-  [ -d "$protonbottle" ] && echo "ProtonBottle=${protonbottle}" >> "$config" && \
-   param="--info" && msg="$config config is successfully created or updated." && output && break
-  param="--error" && msg="This is not a correct directory for Proton Bottle. \nTry again." && output
- done
-fi
+chk_config
 
 # Checking if update was successful
 grep -q success <<<"$*" && param="--info" && msg="$(basename $0) Updated Successfully. \n${changes}" && output
