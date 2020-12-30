@@ -1,5 +1,15 @@
 # GameExec - Linux Game Launcher
 
+## News:
+Added option to run command(s) before the game launches and after it finishes.  
+For example I personally want always to kill my compositor which is compton that I use for transparency  
+and always run corectrl to boost my gaming performance.  
+Multiple commands can be added separated by commas.  
+- So, my before commands entry is: pkill compton,corectrl
+- And my after commands entry is: compton -cCGfF -o 0.10
+
+
+
 ## Short description:
 With this script you can manage and run Windows games via Proton GE Custom.
  - Can be executed either by running ./GameExec directly from the terminal or by running GameExec.desktop from a file manager.

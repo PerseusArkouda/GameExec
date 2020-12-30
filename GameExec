@@ -5,8 +5,8 @@
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
 # Version variables
-version="2.0"
-changes="\nChangelog: \nRemoved Proton update check from startup. \nAdded Proton update check option. \nNewer Proton installation will not result to uninstall the previous versions. \nAdded Option to set Proton version. \nOther bug fixes."
+version="2.1"
+changes="\nChangelog: \nAdded option to set to run command(s) before a game is executed and after it finishes. \nProton Update check will check your installed Proton version from your installed files now, instead of version set in GameExec. \nFixed a bug wasn't allowing for Proton update to proceed."
 
 # Start up greeting
 echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
@@ -30,7 +30,8 @@ if [ -f "$config" ]; then
  # Reading values from conf if exist
  protonbottle=$(grep "ProtonBottle" "$config" | cut -d "=" -f 2)
  protonexec=$(grep "ProtonExec" "$config" | cut -d "=" -f 2)
- [ ! -z "$protonexec" ] && protoninstalled=$(dirname "$protonexec" | xargs basename)
+ protoninstalled=$(dirname "$protonexec" | xargs basename)
+ [ ! -z "$protonexec" ] && protoninstalled=$(dirname "$protonexec" | sed 's@/bin@@g' | xargs basename)
 fi
 
 # Output in zenity
@@ -41,16 +42,30 @@ function output {
 
 # Launch game function
 function launchgame {
+ grep -q "/bin/wine" <<<"$protonexec" && mode="wine" || mode="proton"
  action="launch"
  gameslist
  gamepath=$(dirname "$selectedgamepath")
  [ ! -d "$gamepath" ] && param="--error" && msg="Not found game path: ${gamepath}. \nVerify the path is correct and the disk mounted." && output && desktopmenu || cd "$gamepath"
+ [ ! -z "$gamemode" ] && gmr="gamemoderun"
   #ENABLE_VKBASALT=1
- if [ ! -z "$gamemode" ]; then
-  gamemoderun STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
- else
  # testing: PROTON_NO_ESYNC=1 PROTON_DUMP_DEBUG_COMMANDS=1
-  STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
+ commandsbefore=( $(grep "^commandsbefore" "$config" | cut -d "=" -f 2 | sed -e "s/ /+/g" -e "s/,/\n/g") )
+ commandsafter=( $(grep "^commandsafter" "$config" | cut -d "=" -f 2 | sed -e "s/ /+/g" -e "s/,/\n/g") )
+ [ ! -z "$commandsbefore" ] && for i in "${commandsbefore[@]}"; do cmd=$(sed "s/+/ /g" <<<"${i}"); $cmd & done
+ if [ "$mode" = "proton" ]; then
+  if [ ! -z "$gamemode" ]; then
+   gamemoderun STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
+  else
+   STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
+  fi
+ else
+  [ -d "${protonbottle}/pfx" ] && protonbottle="${protonbottle}/pfx"
+  if [ ! -z "$gamemode" ]; then
+   gamemoderun WINEPREFIX="$protonbottle" "$protonexec" "$selectedgamepath" $gameparams &
+  else
+   WINEPREFIX="$protonbottle" "$protonexec" "$selectedgamepath" $gameparams &
+  fi
  fi
  # Checking if game has started
  #sleep 5 && pgrep $(basename "$selectedgamepath") >/dev/null && \
@@ -59,6 +74,8 @@ function launchgame {
 # TEMPORARILY REMOVED PROCESS VERIFICATION
  #[ "$?" != 0 ] && param="--error" && \
   #msg="Game execution failed." && output && exit 1
+ [ ! -z "$commandsafter" ] && sleep 20 && while [ ! -z $(pgrep $(basename "$selectedgamepath")) ]; do sleep 5; done && \
+  for i in "${commandsafter[@]}"; do cmd=$(sed "s/+/ /g" <<<"${i}"); $cmd & done
 }
 
 # Add game function
@@ -148,14 +165,43 @@ function reset {
  exit 0
 }
 
+# Set commands to run before and after game launch function
+function run_commands {
+ commandsbefore=$(zenity --entry --text="Enter commands to run before game execution (separated by commas):" --width=300)
+ if [ ! -z "$commandsbefore" ]; then
+  grep -q "^commandsbefore=" "$config" && param="--info" && msg="Command(s) already found in config. Replacing..." && output && \
+   grep -v "^commandsbefore=" "$config" > "${scriptpath}/configtmp" && mv "${scriptpath}/configtmp" "$config"
+  echo "commandsbefore=${commandsbefore}" >> "$config" && \
+  param="--info" && msg="Added command(s): $commandsbefore to ${config}." && output
+ fi
+ commandsafter=$(zenity --entry --text="Enter commands to run after game execution is finished (separated bycommas):" --width=300)
+ if [ ! -z "$commandsafter" ]; then
+  grep -q "^commandsafter=" "$config" && param="--info" && msg="Command(s) already found in config. Replacing..." && output && \
+   grep -v "^commandsafter=" "$config" > "${scriptpath}/configtmp" && mv "${scriptpath}/configtmp" "$config"
+  echo "commandsafter=${commandsafter}" >> "$config" && \
+  param="--info" && msg="Added command(s): $commandsafter to ${config}." && output
+ fi
+ [ -z "$commandsbefore" ] && [ -z "$commandsafter" ] && param="--info" && msg="No command(s) added." && output
+ desktopmenu
+}
+
+# Set Proton or other runner function
 function set_proton_version {
- ls -d ${compatpath}/* | grep "Proton.*GE" > /tmp/protonversionsinstalled.txt
+ ls -d ${compatpath}/* > /tmp/protonversionsinstalled.txt
+ protonversions=()
  while IFS= read -r i; do
   protonversions+=( "$(basename $i)" )
  done </tmp/protonversionsinstalled.txt
  selectedprotonversion=$(zenity --list --title="Installed Proton GE Custom versions" --text="Select a version:" --column="Proton GE Custom version" "${protonversions[@]}" --height=330 --width=500)
- [ "$?" -eq 0 ] && sed -i "s/${protoninstalled}/${selectedprotonversion}/" "$config" && protoninstalled="$selectedprotonversion" && \
-  param="--info" && msg="$selectedprotonversion is set." && output
+ if [ "$?" -eq 0 ]; then
+  [ ! -f "${compatpath}/${selectedprotonversion}/proton" ] && selectedprotonversionset="${selectedprotonversion}/bin/wine" || selectedprotonversionset="${selectedprotonversion}/proton"
+  [ ! -f "${compatpath}/${protoninstalled}/proton" ] && protoninstalledset="${protoninstalled}/bin/wine" || protoninstalledset="${protoninstalled}/proton"
+  sed -i "s@${protoninstalledset}@${selectedprotonversionset}@" "$config"
+  protonexec="${compatpath}/${selectedprotonversionset}"
+  protoninstalled="$selectedprotonversion"
+  param="--info" && msg="$selectedprotonversion is set."
+  output
+ fi
  desktopmenu
 }
 
@@ -203,10 +249,16 @@ function chk_proton_update {
  protondir="${protonfile/.tar.gz/}"
  protononline="$protondir"
  protonfullpath="${compatpath}/${protondir}"
+ checkprotononline=$(awk -F- '{gsub(/\./,"");print $2$4}' <<<"$protononline")
+ checkprotoninstalled=$(ls "$compatpath" | awk -F- '/Proton-/ {gsub(/\./,"");print $2$4;exit}')
  if [ -f "$protonexec" ] && [ ! -z "$protononline" ]; then
-  if [ "$protoninstalled" != "$protononline" ]; then
+  if [ "$checkprotoninstalled" -lt "$checkprotononline" ]; then
    param="--question" && msg="An updated version of Proton GE Custom is available online: ${protononline}. \nWould you like to update now?" && output
-   [ "$?" -eq 0 ] && updateproton=1 || param="--info" && msg="Proton GE Custom update cancelled." && output && desktopmenu
+   if [ "$?" -eq 0 ]; then
+    updateproton=1
+   else
+    param="--info" && msg="Proton GE Custom update cancelled." && output && desktopmenu
+   fi
   fi
  fi
 
@@ -275,7 +327,7 @@ function desktopmenu {
 selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher v${version} - Main menu" \
  --column="Select" --column="Operation" TRUE "Launch a game" FALSE "Add a new game" \
  FALSE "Remove a game from the game list" FALSE "CoreCtrl (requires corectrl)" FALSE "GameMode optimisations (requires gamemode)" FALSE "DXVK OSD HUD (On Screen Display)" FALSE "Winetricks (requires wine and winetricks)" \
- FALSE "Reset $(basename $0)" FALSE "Update $(basename $0)" FALSE "Set Proton GE Custom version" FALSE "Check Proton GE Custom for updates" --height=370 --width=500)
+ FALSE "Run command(s) before and after game launch" FALSE "Set Proton version or other runner" FALSE "Check for Proton GE Custom updates" FALSE "Update $(basename $0)" FALSE "Reset $(basename $0)" --height=390 --width=500)
 
 grep -q ^Launch <<<"$selectedmenuitem" && launchgame
 grep -q ^Add <<<"$selectedmenuitem" && addgame
@@ -288,6 +340,7 @@ grep -q ^Reset <<<"$selectedmenuitem" && reset
 grep -q ^Update <<<"$selectedmenuitem" && update
 grep -q ^Set <<<"$selectedmenuitem" && set_proton_version
 grep -q ^Check <<<"$selectedmenuitem" && chk_proton_update
+grep -q ^Run <<<"$selectedmenuitem" && run_commands
 
 grep -q desktop <<<"$*" && echo "$(basename $0) is running through the desktop shortcut. If you have issues run it from a terminal to be able to watch Proton's output." && sleep 15
 
