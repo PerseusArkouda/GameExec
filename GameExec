@@ -6,7 +6,7 @@
 
 # Version variables
 version="2.1"
-changes="\nChangelog: \nAdded option to set to run command(s) before a game is executed and after it finishes. \nProton Update check will check your installed Proton version from your installed files now, instead of version set in GameExec. \nFixed a bug wasn't allowing for Proton update to proceed."
+changes="\nChangelog: \nFixed Proton version update check."
 
 # Start up greeting
 echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
@@ -249,9 +249,11 @@ function chk_proton_update {
  protondir="${protonfile/.tar.gz/}"
  protononline="$protondir"
  protonfullpath="${compatpath}/${protondir}"
- checkprotononline=$(awk -F- '{gsub(/\./,"");print $2$4}' <<<"$protononline")
- checkprotoninstalled=$(ls "$compatpath" | awk -F- '/Proton-/ {gsub(/\./,"");print $2$4;exit}')
  if [ -f "$protonexec" ] && [ ! -z "$protononline" ]; then
+  checkprotononline=$(awk -F- '{gsub(/\./,"");print $2$4}' <<<"$protononline")
+  checkprotoninstalled=$(ls "$compatpath" | awk -F- '/Proton-/ {gsub(/\./,"");print $2$4;exit}')
+  while [ ${#checkprotoninstalled} -ne 3 ]; do checkprotoninstalled=${checkprotoninstalled::-1}; done
+  while [ ${#checkprotononline} -ne 3 ]; do checkprotononline=${checkprotononline::-1}; done
   if [ "$checkprotoninstalled" -lt "$checkprotononline" ]; then
    param="--question" && msg="An updated version of Proton GE Custom is available online: ${protononline}. \nWould you like to update now?" && output
    if [ "$?" -eq 0 ]; then
