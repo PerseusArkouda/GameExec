@@ -5,8 +5,8 @@
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
 # Version variables
-version="2.1"
-changes="\nChangelog: \nFixed Proton version update check."
+version="2.2"
+changes="\nChangelog: \nFixed an issue with Proton update check."
 
 # Start up greeting
 echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
@@ -47,7 +47,6 @@ function launchgame {
  gameslist
  gamepath=$(dirname "$selectedgamepath")
  [ ! -d "$gamepath" ] && param="--error" && msg="Not found game path: ${gamepath}. \nVerify the path is correct and the disk mounted." && output && desktopmenu || cd "$gamepath"
- [ ! -z "$gamemode" ] && gmr="gamemoderun"
   #ENABLE_VKBASALT=1
  # testing: PROTON_NO_ESYNC=1 PROTON_DUMP_DEBUG_COMMANDS=1
  commandsbefore=( $(grep "^commandsbefore" "$config" | cut -d "=" -f 2 | sed -e "s/ /+/g" -e "s/,/\n/g") )
@@ -74,7 +73,8 @@ function launchgame {
 # TEMPORARILY REMOVED PROCESS VERIFICATION
  #[ "$?" != 0 ] && param="--error" && \
   #msg="Game execution failed." && output && exit 1
- [ ! -z "$commandsafter" ] && sleep 20 && while [ ! -z $(pgrep $(basename "$selectedgamepath")) ]; do sleep 5; done && \
+ # $(basename "$selectedgamepath")
+ [ ! -z "$commandsafter" ] && sleep 20 && while [ ! -z $(pgrep wineserver) ]; do sleep 5; done && \
   for i in "${commandsafter[@]}"; do cmd=$(sed "s/+/ /g" <<<"${i}"); $cmd & done
 }
 
@@ -86,7 +86,7 @@ function addgame {
  [ -f "$gamelist" ] && checkgamename=$(grep -Pw "$gamename" "$gamelist" | cut -d '=' -f 1) && \
   [ ! -z "$checkgamename" ] && \
   msg="Found $gamename already in game list. \nGame names must be unique." && output && addgame
- gamepath=$(zenity --file-selection --title="Select a game executable" --filename "${HOME}/" --file-filter="*.exe")
+ gamepath=$(zenity --file-selection --title="Select a game executable" --filename "${HOME}/" --file-filter="*.exe *.msi")
  [ "$?" -ne 0 ] && param="--error" && msg="Cancelled." && output && desktopmenu
  gameparams=$(zenity --entry --text="Enter launch parameters if you want or else just press OK:" --width=300)
  [ ! -z "$gameparams" ] && echo "${gamename}=${gamepath}=${gameparams}" >> "$gamelist" || echo "${gamename}=${gamepath}" >> "$gamelist"
@@ -251,7 +251,7 @@ function chk_proton_update {
  protonfullpath="${compatpath}/${protondir}"
  if [ -f "$protonexec" ] && [ ! -z "$protononline" ]; then
   checkprotononline=$(awk -F- '{gsub(/\./,"");print $2$4}' <<<"$protononline")
-  checkprotoninstalled=$(ls "$compatpath" | awk -F- '/Proton-/ {gsub(/\./,"");print $2$4;exit}')
+  checkprotoninstalled=$(ls -v1 "$compatpath" | awk -F- '/Proton-/ {gsub(/\./,"");print $2$4}' | tail -1)
   while [ ${#checkprotoninstalled} -ne 3 ]; do checkprotoninstalled=${checkprotoninstalled::-1}; done
   while [ ${#checkprotononline} -ne 3 ]; do checkprotononline=${checkprotononline::-1}; done
   if [ "$checkprotoninstalled" -lt "$checkprotononline" ]; then
