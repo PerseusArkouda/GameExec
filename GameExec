@@ -5,8 +5,8 @@
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
 # Version variables
-version="2.2"
-changes="\nChangelog: \nFixed an issue with Proton update check."
+version="2.3"
+changes="\nChangelog: \nFixed an issue with STEAM_COMPAT_CLIENT_INSTALL_PATH variable failing to start games on newer Proton GE versions."
 
 # Start up greeting
 echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
@@ -22,7 +22,8 @@ script=$(realpath "$0")
 scriptpath=$(dirname "$script")
 config="$scriptpath/$(basename $0).conf"
 gamelist="$scriptpath/GameList.txt"
-compatpath="${HOME}/.steam/root/compatibilitytools.d"
+steaminstallpath="${HOME}/.steam/root/"
+compatpath="${steaminstallpath}compatibilitytools.d"
 [ ! -d "$compatpath" ] && mkdir -p "$compatpath"
 
 # Basic functionality check
@@ -47,16 +48,14 @@ function launchgame {
  gameslist
  gamepath=$(dirname "$selectedgamepath")
  [ ! -d "$gamepath" ] && param="--error" && msg="Not found game path: ${gamepath}. \nVerify the path is correct and the disk mounted." && output && desktopmenu || cd "$gamepath"
-  #ENABLE_VKBASALT=1
- # testing: PROTON_NO_ESYNC=1 PROTON_DUMP_DEBUG_COMMANDS=1
  commandsbefore=( $(grep "^commandsbefore" "$config" | cut -d "=" -f 2 | sed -e "s/ /+/g" -e "s/,/\n/g") )
  commandsafter=( $(grep "^commandsafter" "$config" | cut -d "=" -f 2 | sed -e "s/ /+/g" -e "s/,/\n/g") )
  [ ! -z "$commandsbefore" ] && for i in "${commandsbefore[@]}"; do cmd=$(sed "s/+/ /g" <<<"${i}"); $cmd & done
  if [ "$mode" = "proton" ]; then
   if [ ! -z "$gamemode" ]; then
-   gamemoderun STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
+   gamemoderun STEAM_COMPAT_CLIENT_INSTALL_PATH="$steaminstallpath" STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
   else
-   STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
+   STEAM_COMPAT_CLIENT_INSTALL_PATH="$steaminstallpath" STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
   fi
  else
   [ -d "${protonbottle}/pfx" ] && protonbottle="${protonbottle}/pfx"
