@@ -1,6 +1,7 @@
 # GameExec - Linux Game Launcher
 
 ## News:
+Added FSR (FidelityFX Super Resolution) functionality.
 Added option to run command(s) before the game launches and after it finishes.  
 For example I personally want always to kill my compositor which is compton that I use for transparency  
 and always run corectrl to boost my gaming performance.  

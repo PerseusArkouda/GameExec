@@ -5,8 +5,8 @@
 # Known issues: Sometimes script crashes while trying to launch the game through GameExec.desktop. Prefer running directly from GameExec.
 
 # Version variables
-version="2.3"
-changes="\nChangelog: \nFixed an issue with STEAM_COMPAT_CLIENT_INSTALL_PATH variable failing to start games on newer Proton GE versions."
+version="2.4"
+changes="\nChangelog: \nAdded FSR functionality."
 
 # Start up greeting
 echo "$(echo $'\n\r')#### Linux Game Launcher v${version} ####"
@@ -33,6 +33,8 @@ if [ -f "$config" ]; then
  protonexec=$(grep "ProtonExec" "$config" | cut -d "=" -f 2)
  protoninstalled=$(dirname "$protonexec" | xargs basename)
  [ ! -z "$protonexec" ] && protoninstalled=$(dirname "$protonexec" | sed 's@/bin@@g' | xargs basename)
+ fsr=$(awk -F"=" '/^fsr=/{print int($2)}' "$config")
+ fsr_str=$(awk -F"=" '/^fsr_str=/{print int($2)}' "$config")
 fi
 
 # Output in zenity
@@ -48,21 +50,23 @@ function launchgame {
  gameslist
  gamepath=$(dirname "$selectedgamepath")
  [ ! -d "$gamepath" ] && param="--error" && msg="Not found game path: ${gamepath}. \nVerify the path is correct and the disk mounted." && output && desktopmenu || cd "$gamepath"
+ [ -z "$fsr" ] && fsr=0
+ [ -z "$fsr_str" ] && fsr_str=3
  commandsbefore=( $(grep "^commandsbefore" "$config" | cut -d "=" -f 2 | sed -e "s/ /+/g" -e "s/,/\n/g") )
  commandsafter=( $(grep "^commandsafter" "$config" | cut -d "=" -f 2 | sed -e "s/ /+/g" -e "s/,/\n/g") )
  [ ! -z "$commandsbefore" ] && for i in "${commandsbefore[@]}"; do cmd=$(sed "s/+/ /g" <<<"${i}"); $cmd & done
  if [ "$mode" = "proton" ]; then
   if [ ! -z "$gamemode" ]; then
-   gamemoderun STEAM_COMPAT_CLIENT_INSTALL_PATH="$steaminstallpath" STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
+   gamemoderun WINE_FULLSCREEN_FSR=$fsr WINE_FULLSCREEN_FSR_STRENGTH=$fsr_str STEAM_COMPAT_CLIENT_INSTALL_PATH="$steaminstallpath" STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
   else
-   STEAM_COMPAT_CLIENT_INSTALL_PATH="$steaminstallpath" STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
+   WINE_FULLSCREEN_FSR=$fsr WINE_FULLSCREEN_FSR_STRENGTH=$fsr_str STEAM_COMPAT_CLIENT_INSTALL_PATH="$steaminstallpath" STEAM_COMPAT_DATA_PATH="$protonbottle" "$protonexec" run "$selectedgamepath" $gameparams &
   fi
  else
   [ -d "${protonbottle}/pfx" ] && protonbottle="${protonbottle}/pfx"
   if [ ! -z "$gamemode" ]; then
-   gamemoderun WINEPREFIX="$protonbottle" "$protonexec" "$selectedgamepath" $gameparams &
+   gamemoderun WINE_FULLSCREEN_FSR=$fsr WINE_FULLSCREEN_FSR_STRENGTH=$fsr_str WINEPREFIX="$protonbottle" "$protonexec" "$selectedgamepath" $gameparams &
   else
-   WINEPREFIX="$protonbottle" "$protonexec" "$selectedgamepath" $gameparams &
+   WINE_FULLSCREEN_FSR=$fsr WINE_FULLSCREEN_FSR_STRENGTH=$fsr_str WINEPREFIX="$protonbottle" "$protonexec" "$selectedgamepath" $gameparams &
   fi
  fi
  # Checking if game has started
@@ -124,6 +128,39 @@ function runwinetricks {
  desktopmenu
 }
 
+# Enable or disable FSR
+function enablefsr {
+ fsr=$(awk -F"=" '/^fsr=/{print int($2)}' "$config")
+ [ -z "$fsr" ] && fsr=0 && fsr_display="Disabled" || fsr_display="Enabled"
+ fsr_str=$(awk -F"=" '/^fsr_str=/{print int($2)}' "$config")
+ [ -z "$fsr_str" ] && fsr_str=3
+ selectedfsritem=$(zenity --list --radiolist --text="Linux Game Launcher v${version} - FSR menu" \
+ --column="Select" --column="Operation" FALSE "Enable or disable FSR (FidelityFX Super Resolution) [Currently: $fsr_display]" \
+ FALSE "Set FSR strength (Sharpening. Values: 0-5) [Currently: $fsr_str]" --height=330 --width=600)
+ [ "$?" -ne 0 ] && desktopmenu
+
+ if grep -q ^Enable <<<"$selectedfsritem"; then
+  grep -q "^fsr=" "$config" && sed -i '/^fsr=.*/d' "$config"
+  if [ "$fsr" -eq 0 ]; then
+   fsr=1 && fsr_display="Enabled" && echo "fsr=1" >> "$config"
+  else
+   fsr=0 && fsr_display="Disabled" && echo "fsr=0" >> "$config"
+  fi
+  param="--info" && msg="FSR is now $fsr_display." && output
+ fi
+ if grep -q ^Set <<<"$selectedfsritem"; then
+  set_fsr_str=$(zenity --entry --text="Enter FSR strength (sharpening) value [0-5]:" --width=300)
+  if [ ! -z "$set_fsr_str" ]; then
+   grep -q "^fsr_str=" "$config" && sed -i '/^fsr_str=.*/d' "$config"
+   fsr_str=$set_fsr_str && echo "fsr_str=$set_fsr_str" >> "$config"
+   param="--info" && msg="FSR strength is now set to $fsr_str." && output
+  else
+   param="--info" && msg="No changes made to FSR strength." && output
+  fi
+ fi
+ desktopmenu
+}
+
 # Start CoreCtrl
 function startcorectrl {
  [ -z $(whereis corectrl | awk '{print $2}') ] && param="--error" && msg="corectrl not found installed. Install CoreCtrl and retry.\nhttps://gitlab.com/corectrl/corectrl" && output && desktopmenu
@@ -166,7 +203,8 @@ function reset {
 
 # Set commands to run before and after game launch function
 function run_commands {
- commandsbefore=$(zenity --entry --text="Enter commands to run before game execution (separated by commas):" --width=300)
+ commandsbefore=$(zenity --entry --text="Enter commands to run before game execution 
+(separated by commas):" --width=300)
  if [ ! -z "$commandsbefore" ]; then
   grep -q "^commandsbefore=" "$config" && param="--info" && msg="Command(s) already found in config. Replacing..." && output && \
    grep -v "^commandsbefore=" "$config" > "${scriptpath}/configtmp" && mv "${scriptpath}/configtmp" "$config"
@@ -327,13 +365,14 @@ function chk_config {
 function desktopmenu {
 selectedmenuitem=$(zenity --list --radiolist --text="Linux Game Launcher v${version} - Main menu" \
  --column="Select" --column="Operation" TRUE "Launch a game" FALSE "Add a new game" \
- FALSE "Remove a game from the game list" FALSE "CoreCtrl (requires corectrl)" FALSE "GameMode optimisations (requires gamemode)" FALSE "DXVK OSD HUD (On Screen Display)" FALSE "Winetricks (requires wine and winetricks)" \
- FALSE "Run command(s) before and after game launch" FALSE "Set Proton version or other runner" FALSE "Check for Proton GE Custom updates" FALSE "Update $(basename $0)" FALSE "Reset $(basename $0)" --height=390 --width=500)
+ FALSE "Remove a game from the game list" FALSE "FSR Options" FALSE "CoreCtrl (requires corectrl)" FALSE "GameMode optimisations (requires gamemode)" FALSE "DXVK OSD HUD (On Screen Display)" FALSE "Winetricks (requires wine and winetricks)" \
+ FALSE "Run command(s) before and after game launch" FALSE "Set Proton version or other runner" FALSE "Check for Proton GE Custom updates" FALSE "Update $(basename $0)" FALSE "Reset $(basename $0)" --height=420 --width=500)
 
 grep -q ^Launch <<<"$selectedmenuitem" && launchgame
 grep -q ^Add <<<"$selectedmenuitem" && addgame
 grep -q ^Remove <<<"$selectedmenuitem" && removegame
 grep -q ^CoreCtrl <<<"$selectedmenuitem" && startcorectrl
+grep -q ^FSR <<<"$selectedmenuitem" && enablefsr
 grep -q ^GameMode <<<"$selectedmenuitem" && enablegamemode
 grep -q ^DXVK <<<"$selectedmenuitem" && osd
 grep -q ^Winetricks <<<"$selectedmenuitem" && runwinetricks
