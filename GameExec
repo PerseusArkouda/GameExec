@@ -131,7 +131,8 @@ function runwinetricks {
 # Enable or disable FSR
 function enablefsr {
  fsr=$(awk -F"=" '/^fsr=/{print int($2)}' "$config")
- [ -z "$fsr" ] && fsr=0 && fsr_display="Disabled" || fsr_display="Enabled"
+ [ -z "$fsr" ] && fsr=0
+ [ "$fsr" -eq 1 ] && fsr_display="Enabled" || fsr_display="Disabled"
  fsr_str=$(awk -F"=" '/^fsr_str=/{print int($2)}' "$config")
  [ -z "$fsr_str" ] && fsr_str=3
  selectedfsritem=$(zenity --list --radiolist --text="Linux Game Launcher v${version} - FSR menu" \
